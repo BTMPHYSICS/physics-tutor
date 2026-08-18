@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 from google import genai
 from google.genai import types
@@ -12,12 +13,12 @@ st.set_page_config(
 st.title("⚛️ 과학고 물리 AI 튜터")
 st.caption("물리 개념 탐구, 유도 과정 검토, 오개념 교정을 돕는 인공지능 교사입니다.")
 
-# 2. API 키 설정
-api_key = st.secrets.get("GEMINI_API_KEY", None)
+# 2. 안전한 API 키 로드 (Streamlit Secrets 사용)
+api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 
 if not api_key:
-    # Secrets 미등록 시 여기에 본인의 API 키 입력
-    api_key = "AIzaSy_여기에_선생님의_API_키를_입력하세요"
+    st.error("GEMINI_API_KEY가 설정되지 않았습니다. Streamlit 설정(Secrets)에서 등록해 주세요.")
+    st.stop()
 
 client = genai.Client(api_key=api_key)
 
@@ -56,12 +57,10 @@ for message in st.session_state.messages:
 
 # 6. 학생 질문 입력 및 응답 생성
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
-    # 학생 질문 화면 표시 및 기록
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 인코딩 에러를 방지하는 표준 딕셔너리 포맷 히스토리 생성
     contents = []
     for msg in st.session_state.messages:
         role = "user" if msg["role"] == "user" else "model"
@@ -75,13 +74,11 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         temperature=0.2
     )
 
-    # 답변 출력
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         full_response = ""
         
         try:
-            # 안정적인 UTF-8 스트리밍 호출
             response_stream = client.models.generate_content_stream(
                 model="gemini-2.5-flash",
                 contents=contents,
