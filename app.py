@@ -11,10 +11,56 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("⚛️ 과학고 물리 AI 튜터")
+# 2. 동적 애니메이션 CSS 주입 (대기 시간 및 아이콘 효과)
+st.markdown("""
+<style>
+/* AI 선생님 아이콘 펄스(부드러운 확대/축소) 애니메이션 */
+@keyframes tutorPulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+/* 회전 애니메이션 */
+@keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.thinking-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background-color: rgba(74, 144, 226, 0.08);
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+.tutor-active-icon {
+    font-size: 24px;
+    display: inline-block;
+    animation: tutorPulse 1.4s infinite ease-in-out;
+}
+
+.tutor-atom-icon {
+    font-size: 22px;
+    display: inline-block;
+    animation: spinSlow 3s linear infinite;
+}
+
+.thinking-text {
+    color: #4A90E2;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("⚛️ BTMPHYSICS AI TuToR")
 st.caption("선생님의 강의와 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
-# 2. API 키 설정
+# 3. API 키 설정
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
     st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
@@ -22,13 +68,13 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 3. 추출된 강의록(lecture_notes.md) 불러오기
+# 4. 추출된 강의록(lecture_notes.md) 불러오기
 lecture_knowledge = ""
 if os.path.exists("lecture_notes.md"):
     with open("lecture_notes.md", "r", encoding="utf-8") as f:
         lecture_knowledge = f.read()
 
-# 4. 물리 교사 시스템 지침
+# 5. 물리 교사 시스템 지침
 PHYSICS_INSTRUCTION = f"""
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
 
@@ -48,18 +94,23 @@ PHYSICS_INSTRUCTION = f"""
 2. 강의록에 수록된 핵심 직관과 판서 유도 순서를 존중하여 힌트를 제공할 것.
 """
 
-# 5. 세션 및 이전 대화 화면 출력
+# 6. 세션 및 이전 대화 화면 출력
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# 아바타 아이콘 지정 (선생님: 👨‍🏫 또는 ⚛️, 학생: 🧑‍🎓)
+AVATAR_USER = "🧑‍🎓"
+AVATAR_ASSISTANT = "👨‍🏫"
+
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
+    with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
-# 6. 학생 질문 처리
+# 7. 학생 질문 처리
 if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
 
     recent_messages = st.session_state.messages[-6:]
@@ -76,8 +127,18 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
         temperature=0.2
     )
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
+        
+        # 💡 대기 시간 동안 보여줄 동적 애니메이션 박스
+        response_placeholder.markdown("""
+        <div class="thinking-box">
+            <span class="tutor-active-icon">👨‍🏫</span>
+            <span class="tutor-atom-icon">⚛️</span>
+            <span class="thinking-text">선생님이 유도 과정과 힌트를 정리하고 있습니다...</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
         full_response = ""
         
         try:
@@ -98,7 +159,7 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-# 7. 좌측 사이드바: 학습 기록 다운로드 및 초기화
+# 8. 좌측 사이드바: 학습 기록 다운로드 및 초기화
 with st.sidebar:
     st.header("📚 나의 학습 관리")
     
