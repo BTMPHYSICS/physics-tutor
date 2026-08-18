@@ -1,9 +1,10 @@
 import os
+import datetime
 import streamlit as st
 from google import genai
 from google.genai import types
 
-# 1. 페이지 설정
+# 1. 페이지 기본 설정
 st.set_page_config(
     page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
@@ -27,7 +28,7 @@ if os.path.exists("lecture_notes.md"):
     with open("lecture_notes.md", "r", encoding="utf-8") as f:
         lecture_knowledge = f.read()
 
-# 4. 물리 교사 시스템 지침 (선생님 강의록 지식 결합)
+# 4. 물리 교사 시스템 지침
 PHYSICS_INSTRUCTION = f"""
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
 반드시 아래에 제공된 [선생님 전용 심화 강의록]의 설명 체계, 유도 논리, 오개념 지적 사항을 최우선 기준으로 삼아 학생들을 지도하세요.
@@ -44,7 +45,7 @@ PHYSICS_INSTRUCTION = f"""
 2. 강의록에 수록된 핵심 직관과 판서 유도 순서를 존중하여 힌트를 제공할 것.
 """
 
-# 5. 세션 및 이전 대화 렌더링
+# 5. 세션 및 이전 대화 화면 출력
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -52,13 +53,12 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 6. 학생 질문 처리 (토큰 절약 및 최신 대화 전송)
+# 6. 학생 질문 처리
 if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 최근 대화 히스토리 구성
     recent_messages = st.session_state.messages[-6:]
     contents = []
     for msg in recent_messages:
@@ -94,3 +94,30 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
             error_msg = f"응답 생성 중 오류가 발생했습니다: {str(e)}"
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
+# 7. 좌측 사이드바: 학습 기록 다운로드 및 초기화
+with st.sidebar:
+    st.header("📚 나의 학습 관리")
+    
+    if len(st.session_state.messages) > 0:
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
+        
+        for msg in st.session_state.messages:
+            role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
+            export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
+        
+        file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        st.download_button(
+            label="📥 오늘 학습 기록 다운로드 (.md)",
+            data=export_text,
+            file_name=f"물리학습기록_{file_date}.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
+        
+        if st.button("🗑️ 대화 기록 초기화", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+    else:
+        st.info("질문을 입력하면 여기에 학습 기록 다운로드 버튼이 활성화됩니다.")
