@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import time
 from google import genai
 from google.genai import types
 
@@ -80,7 +81,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         
         try:
             response_stream = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
+                model="gemini-3.6-flash",
                 contents=contents,
                 config=config
             )
@@ -93,6 +94,9 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
-            error_msg = f"응답 생성 중 오류가 발생했습니다: {str(e)}"
+            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                error_msg = "현재 접속 요청이 많아 일시적으로 사용량이 초과되었습니다. 약 30초~1분 후 다시 질문해 주세요."
+            else:
+                error_msg = f"응답 생성 중 오류가 발생했습니다: {str(e)}"
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
