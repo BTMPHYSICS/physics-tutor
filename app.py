@@ -1,22 +1,23 @@
 import os
 import re
+import time
 import json
 import datetime
 import streamlit as st
 import streamlit.components.v1 as components
-import time
 import matplotlib.pyplot as plt
 from google import genai
 from google.genai import types
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="BTMPhysics AI Tutor",
+    page_title="BTMPhysics AI Tutor
+",
     page_icon="⚛️",
     layout="centered"
 )
 
-# 2. 동적 애니메이션 및 복사 스타일 CSS
+# 2. 동적 애니메이션 및 복사 스타일 CSS 주입
 st.markdown("""
 <style>
 @keyframes tutorPulse {
@@ -60,7 +61,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 클립보드 복사 버튼
+# 클립보드 복사 버튼 컴포넌트
 def copy_button_widget(text_to_copy, button_label="📋 복사"):
     clean_json = json.dumps(text_to_copy)
     html_code = f"""
@@ -99,7 +100,8 @@ def copy_button_widget(text_to_copy, button_label="📋 복사"):
     """
     components.html(html_code, height=38)
 
-st.title("⚛️ BTMPhysics AI Tutor")
+st.title("⚛️ BTMPhysics AI Tutor
+")
 st.caption("선생님의 강의와 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 # 3. API 키 설정
@@ -110,29 +112,26 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 추출된 강의록 불러오기
+# 4. 추출된 강의록(lecture_notes.md) 불러오기
 lecture_knowledge = ""
 if os.path.exists("lecture_notes.md"):
     with open("lecture_notes.md", "r", encoding="utf-8") as f:
         lecture_knowledge = f.read()
 
-# 5. 시스템 프롬프트 (정적 그래프 + 인터랙티브 시뮬레이션 지침 추가)
+# 5. 물리 교사 시스템 지침
 PHYSICS_INSTRUCTION = f"""
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
 
 [지식 활용 가이드]
-1. 학생의 질문이 아래 [선생님 전용 강의록]에 포함된 내용이라면, 강의록의 판서 유도 순서, 핵심 직관, 오개념 주의사항을 최우선 기준으로 삼아 지도하세요.
-2. 강의록 외의 물리 질문도 일반물리학/고급물리 지식을 바탕으로 친절하고 깊이 있게 지도하세요.
+1. 학생의 질문이 아래 [선생님 전용 강의록]에 포함된 내용이라면, 반드시 강의록의 판서 유도 순서, 핵심 직관, 오개념 주의사항을 최우선 기준으로 삼아 지도하세요.
+2. 강의록에 없는 다른 단원이나 심화 물리 질문이라도 일반물리학/고급물리 지식을 총동원하여 친절하고 깊이 있게 지도하세요.
 
 [선생님 전용 심화 강의록]
 {lecture_knowledge}
 
-[시각화 및 시뮬레이션 작성 규칙]
-1. 단순 정적 그래프/도식:
-   - Python matplotlib 코드를 ```python ... ``` 코드 블록으로 작성하세요. (plt.show() 제외)
-2. 동적 인터랙티브 시뮬레이션 (학생이 직접 값을 조작해야 하는 경우):
-   - HTML5 Canvas와 JavaScript로 작성된 단독 실행 가능한 웹 시뮬레이터를 ```html ... ``` 코드 블록으로 작성하세요.
-   - 슬라이더, 재생/일시정지 버튼, 수치 디스플레이가 포함된 깔끔한 UI를 제공하세요.
+[시각 자료 및 시뮬레이션 작성 필수 원칙]
+1. 단순 정적 그래프/도식: Python matplotlib 코드를 ```python ... ``` 코드 블록으로 작성하세요. (plt.show() 제외)
+2. 동적 인터랙티브 시뮬레이션: HTML5 Canvas와 JavaScript로 작성된 독립 실행형 웹 시뮬레이터를 ```html ... ``` 코드 블록으로 작성하세요.
 3. 텍스트 기호(ASCII 아트)로 그림을 그리는 것은 절대 금지합니다.
 
 [수식 표기 및 렌더링 규칙]
@@ -144,19 +143,15 @@ PHYSICS_INSTRUCTION = f"""
 2. 강의록에 수록된 핵심 직관과 판서 유도 순서를 존중하여 힌트를 제공할 것.
 """
 
-# 6. 복합 렌더링 함수 (마크다운 + 파이썬 그래프 + HTML 인터랙티브 시뮬레이터)
+# 6. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
-    # 1) HTML 시뮬레이터 블록 분리
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
-    # 2) Python matplotlib 블록 분리
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
     
-    # 3) 순수 텍스트 렌더링
     clean_text = re.sub(r"```(html|python).*?```", "", content, flags=re.DOTALL).strip()
     if clean_text:
         st.markdown(clean_text)
         
-    # 4) Matplotlib 정적 그래프 렌더링
     for py_code in py_blocks:
         try:
             local_vars = {"plt": plt}
@@ -167,11 +162,10 @@ def render_assistant_content(content):
         except Exception:
             pass
 
-    # 5) HTML/JS 인터랙티브 시뮬레이터 렌더링
     for html_code in html_blocks:
         components.html(html_code.strip(), height=420, scrolling=True)
 
-# 7. 세션 및 이전 대화 화면 출력
+# 7. 이전 대화 화면 렌더링
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -188,8 +182,8 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 8. 학생 질문 처리
-if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요... (시뮬레이션 요청 가능)"):
+# 8. 학생 질문 처리 (503 / 429 자동 재시도 로직 포함)
+if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
@@ -209,7 +203,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         temperature=0.2
     )
 
-   with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
+    with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
         
         response_placeholder.markdown("""
@@ -244,18 +238,17 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
 
             except Exception as e:
                 err_str = str(e)
-                # 503(서버 과부하) 또는 429(속도 제한) 발생 시 자동 재시도
                 if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str) and attempt < max_retries - 1:
                     time.sleep(retry_delay)
                     retry_delay *= 2
                     continue
                 else:
-                    error_msg = f"일시적으로 서버 연결이 불안정합니다. 잠시 후 다시 질문해 주세요. (상세: {err_str})"
+                    error_msg = f"일시적으로 서버 연결이 불안정합니다. 잠시 후 다시 시도해 주세요. (오류: {err_str})"
                     response_placeholder.markdown(error_msg)
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     break
 
-# 9. 좌측 사이드바
+# 9. 좌측 사이드바: 학습 기록 다운로드 및 초기화
 with st.sidebar:
     st.header("📚 나의 학습 관리")
     
