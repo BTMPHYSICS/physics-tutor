@@ -208,7 +208,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         temperature=0.2
     )
 
-    with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
+   with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
         
         response_placeholder.markdown("""
@@ -220,27 +220,39 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         """, unsafe_allow_html=True)
         
         full_response = ""
-        
-        try:
-            response_stream = client.models.generate_content_stream(
-                model="gemini-3.6-flash",
-                contents=contents,
-                config=config
-            )
-            for chunk in response_stream:
-                if chunk.text:
-                    full_response += chunk.text
-                    response_placeholder.markdown(full_response + "▌")
-                    
-            response_placeholder.empty()
-            render_assistant_content(full_response)
-            copy_button_widget(full_response, button_label="📋 답변 전체 복사")
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-            
-        except Exception as e:
-            error_msg = f"응답 생성 중 오류가 발생했습니다: {str(e)}"
-            response_placeholder.markdown(error_msg)
-            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+        max_retries = 3
+        retry_delay = 1.5
+
+        for attempt in range(max_retries):
+            try:
+                response_stream = client.models.generate_content_stream(
+                    model="gemini-2.5-flash",
+                    contents=contents,
+                    config=config
+                )
+                for chunk in response_stream:
+                    if chunk.text:
+                        full_response += chunk.text
+                        response_placeholder.markdown(full_response + "▌")
+                        
+                response_placeholder.empty()
+                render_assistant_content(full_response)
+                copy_button_widget(full_response, button_label="📋 답변 전체 복사")
+                st.session_state.messages.append({"role": "assistant", "content": full_response})
+                break
+
+            except Exception as e:
+                err_str = str(e)
+                # 503(서버 과부하) 또는 429(속도 제한) 발생 시 자동 재시도
+                if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str) and attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                else:
+                    error_msg = f"일시적으로 서버 연결이 불안정합니다. 잠시 후 다시 질문해 주세요. (상세: {err_str})"
+                    response_placeholder.markdown(error_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    break
 
 # 9. 좌측 사이드바
 with st.sidebar:
