@@ -2,7 +2,7 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정 및 디자인
+# 1. 페이지 기본 설정
 st.set_page_config(
     page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
@@ -12,16 +12,16 @@ st.set_page_config(
 st.title("⚛️ 과학고 물리 AI 튜터")
 st.caption("물리 개념 탐구, 유도 과정 검토, 오개념 교정을 돕는 인공지능 교사입니다.")
 
-# 2. API 키 로드 (Streamlit Secrets 지원 및 직접 입력 폴백)
+# 2. API 키 설정
 api_key = st.secrets.get("GEMINI_API_KEY", None)
 
 if not api_key:
-    # Secrets에 키를 등록하지 않았을 경우 직접 입력받거나 하드코딩된 키 사용
+    # Secrets 미등록 시 여기에 본인의 API 키 입력
     api_key = "AIzaSy_여기에_선생님의_API_키를_입력하세요"
 
 client = genai.Client(api_key=api_key)
 
-# 3. 완성된 물리 교사 시스템 지침 (수식 규칙 및 교육 원칙 유지)
+# 3. 물리 교사 시스템 지침
 PHYSICS_INSTRUCTION = """
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
 고전역학, 전자기학, 열역학, 파동 및 광학, 현대물리학 전반에 걸쳐 학문적 엄밀성과 직관을 제공하세요.
@@ -54,35 +54,34 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 6. 학생 질문 입력 및 스트리밍 응답 처리
+# 6. 학생 질문 입력 및 응답 생성
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     # 학생 질문 화면 표시 및 기록
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Gemini API 호출용 대화 히스토리 구성
+    # 인코딩 에러를 방지하는 표준 딕셔너리 포맷 히스토리 생성
     contents = []
     for msg in st.session_state.messages:
         role = "user" if msg["role"] == "user" else "model"
-        contents.append(
-            types.Content(
-                role=role,
-                parts=[types.Part.from_text(text=msg["content"])]
-            )
-        )
+        contents.append({
+            "role": role,
+            "parts": [{"text": msg["content"]}]
+        })
 
     config = types.GenerateContentConfig(
         system_instruction=PHYSICS_INSTRUCTION,
         temperature=0.2
     )
 
-    # 답변 출력 (실시간 스트리밍으로 딜레이 없이 한 글자씩 표시)
+    # 답변 출력
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         full_response = ""
         
         try:
+            # 안정적인 UTF-8 스트리밍 호출
             response_stream = client.models.generate_content_stream(
                 model="gemini-2.5-flash",
                 contents=contents,
@@ -94,7 +93,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                     response_placeholder.markdown(full_response + "▌")
             response_placeholder.markdown(full_response)
             
-            # 대화 기록 저장
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
