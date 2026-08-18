@@ -11,8 +11,7 @@ from google.genai import types
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="BTMPhysics AI Tutor
-",
+    page_title="BTMPhysics AI Tutor",
     page_icon="⚛️",
     layout="centered"
 )
@@ -100,8 +99,7 @@ def copy_button_widget(text_to_copy, button_label="📋 복사"):
     """
     components.html(html_code, height=38)
 
-st.title("⚛️ BTMPhysics AI Tutor
-")
+st.title("⚛️ BTMPhysics AI Tutor")
 st.caption("선생님의 강의와 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 # 3. API 키 설정
