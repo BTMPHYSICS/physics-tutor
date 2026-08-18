@@ -10,12 +10,12 @@ from google.genai import types
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="과학고 물리 AI 튜터",
+    page_title="BTMPhysics AI Tutor",
     page_icon="⚛️",
     layout="centered"
 )
 
-# 2. 동적 애니메이션 및 복사 스타일 CSS 주입
+# 2. 동적 애니메이션 및 복사 스타일 CSS
 st.markdown("""
 <style>
 @keyframes tutorPulse {
@@ -59,8 +59,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 클립보드 복사 버튼 컴포넌트 함수
-def copy_button_widget(text_to_copy, button_label="📋 질문 복사"):
+# 클립보드 복사 버튼
+def copy_button_widget(text_to_copy, button_label="📋 복사"):
     clean_json = json.dumps(text_to_copy)
     html_code = f"""
     <div style="margin-top: 4px; margin-bottom: 8px;">
@@ -98,7 +98,7 @@ def copy_button_widget(text_to_copy, button_label="📋 질문 복사"):
     """
     components.html(html_code, height=38)
 
-st.title("⚛️ BTMPhysics 물리 AI 튜터")
+st.title("⚛️ BTMPhysics AI Tutor")
 st.caption("선생님의 강의와 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 # 3. API 키 설정
@@ -109,27 +109,30 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 추출된 강의록(lecture_notes.md) 불러오기
+# 4. 추출된 강의록 불러오기
 lecture_knowledge = ""
 if os.path.exists("lecture_notes.md"):
     with open("lecture_notes.md", "r", encoding="utf-8") as f:
         lecture_knowledge = f.read()
 
-# 5. 물리 교사 시스템 지침 (수식 + 시각화 도식 규칙 포함)
+# 5. 시스템 프롬프트 (정적 그래프 + 인터랙티브 시뮬레이션 지침 추가)
 PHYSICS_INSTRUCTION = f"""
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
 
 [지식 활용 가이드]
-1. 학생의 질문이 아래 [선생님 전용 강의록]에 포함된 내용이라면, 반드시 강의록의 판서 유도 순서, 핵심 직관, 오개념 주의사항을 최우선 기준으로 삼아 지도하세요.
-2. 강의록에 없는 다른 단원이나 심화 물리 질문이라도 일반물리학/고급물리 지식을 총동원하여 친절하고 깊이 있게 지도하세요.
+1. 학생의 질문이 아래 [선생님 전용 강의록]에 포함된 내용이라면, 강의록의 판서 유도 순서, 핵심 직관, 오개념 주의사항을 최우선 기준으로 삼아 지도하세요.
+2. 강의록 외의 물리 질문도 일반물리학/고급물리 지식을 바탕으로 친절하고 깊이 있게 지도하세요.
 
 [선생님 전용 심화 강의록]
 {lecture_knowledge}
 
-[시각 자료 및 그림 작성 필수 원칙]
-1. 절대로 텍스트 기호(+--, | 등)나 아스키(ASCII) 아트로 그림을 그리지 마세요.
-2. 물리 상황도(자유물체도, 빗면, 회로도, 궤적, 그래프 등) 시각 자료가 필요한 경우, 반드시 실행 가능한 Python matplotlib 코드를 ```python ... ``` 코드 블록으로 작성하세요.
-3. matplotlib 코드 작성 시 plt.show()를 호출하지 말고 fig, ax = plt.subplots(...) 형태로 작성하세요.
+[시각화 및 시뮬레이션 작성 규칙]
+1. 단순 정적 그래프/도식:
+   - Python matplotlib 코드를 ```python ... ``` 코드 블록으로 작성하세요. (plt.show() 제외)
+2. 동적 인터랙티브 시뮬레이션 (학생이 직접 값을 조작해야 하는 경우):
+   - HTML5 Canvas와 JavaScript로 작성된 단독 실행 가능한 웹 시뮬레이터를 ```html ... ``` 코드 블록으로 작성하세요.
+   - 슬라이더, 재생/일시정지 버튼, 수치 디스플레이가 포함된 깔끔한 UI를 제공하세요.
+3. 텍스트 기호(ASCII 아트)로 그림을 그리는 것은 절대 금지합니다.
 
 [수식 표기 및 렌더링 규칙]
 1. 문장 속 인라인 수식: $mg \\sin\\theta$ 와 같이 달러 기호 양 끝에 공백 없이 작성.
@@ -140,23 +143,32 @@ PHYSICS_INSTRUCTION = f"""
 2. 강의록에 수록된 핵심 직관과 판서 유도 순서를 존중하여 힌트를 제공할 것.
 """
 
-# 6. AI 텍스트와 시각화 코드를 분리하여 화면에 렌더링하는 함수
+# 6. 복합 렌더링 함수 (마크다운 + 파이썬 그래프 + HTML 인터랙티브 시뮬레이터)
 def render_assistant_content(content):
-    code_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
-    clean_text = re.sub(r"```python.*?```", "", content, flags=re.DOTALL).strip()
+    # 1) HTML 시뮬레이터 블록 분리
+    html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
+    # 2) Python matplotlib 블록 분리
+    py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
     
+    # 3) 순수 텍스트 렌더링
+    clean_text = re.sub(r"```(html|python).*?```", "", content, flags=re.DOTALL).strip()
     if clean_text:
         st.markdown(clean_text)
         
-    for code in code_blocks:
+    # 4) Matplotlib 정적 그래프 렌더링
+    for py_code in py_blocks:
         try:
             local_vars = {"plt": plt}
-            exec(code.strip(), {}, local_vars)
+            exec(py_code.strip(), {}, local_vars)
             fig = plt.gcf()
             st.pyplot(fig)
             plt.clf()
         except Exception:
             pass
+
+    # 5) HTML/JS 인터랙티브 시뮬레이터 렌더링
+    for html_code in html_blocks:
+        components.html(html_code.strip(), height=420, scrolling=True)
 
 # 7. 세션 및 이전 대화 화면 출력
 if "messages" not in st.session_state:
@@ -165,7 +177,7 @@ if "messages" not in st.session_state:
 AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
-for idx, message in enumerate(st.session_state.messages):
+for message in st.session_state.messages:
     avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
     with st.chat_message(message["role"], avatar=avatar):
         if message["role"] == "assistant":
@@ -176,7 +188,7 @@ for idx, message in enumerate(st.session_state.messages):
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
 # 8. 학생 질문 처리
-if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문하세요..."):
+if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요... (시뮬레이션 요청 가능)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
@@ -203,7 +215,7 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
         <div class="thinking-box">
             <span class="tutor-active-icon">👨‍🏫</span>
             <span class="tutor-atom-icon">⚛️</span>
-            <span class="thinking-text">선생님이 유도 과정과 힌트를 정리하고 있습니다...</span>
+            <span class="thinking-text">선생님이 유도 과정과 시뮬레이션을 준비하고 있습니다...</span>
         </div>
         """, unsafe_allow_html=True)
         
@@ -230,7 +242,7 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-# 9. 좌측 사이드바: 학습 기록 다운로드 및 초기화
+# 9. 좌측 사이드바
 with st.sidebar:
     st.header("📚 나의 학습 관리")
     
