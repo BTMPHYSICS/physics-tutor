@@ -1,6 +1,10 @@
 import os
+import re
+import json
 import datetime
 import streamlit as st
+import streamlit.components.v1 as components
+import matplotlib.pyplot as plt
 from google import genai
 from google.genai import types
 
@@ -11,17 +15,15 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. 동적 애니메이션 CSS 주입 (대기 시간 및 아이콘 효과)
+# 2. 동적 애니메이션 및 복사 스타일 CSS 주입
 st.markdown("""
 <style>
-/* AI 선생님 아이콘 펄스(부드러운 확대/축소) 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
     100% { transform: scale(1); opacity: 0.8; }
 }
 
-/* 회전 애니메이션 */
 @keyframes spinSlow {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -57,7 +59,46 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("⚛️ BTMPHYSICS AI TuToR")
+# 클립보드 복사 버튼 컴포넌트 함수
+def copy_button_widget(text_to_copy, button_label="📋 질문 복사"):
+    clean_json = json.dumps(text_to_copy)
+    html_code = f"""
+    <div style="margin-top: 4px; margin-bottom: 8px;">
+        <button id="copy-btn" onclick="copyText()" style="
+            background-color: #f0f2f6;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        ">{button_label}</button>
+    </div>
+    <script>
+    function copyText() {{
+        const text = {clean_json};
+        navigator.clipboard.writeText(text).then(function() {{
+            const btn = document.getElementById('copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '✅ 복사 완료!';
+            btn.style.backgroundColor = '#d1e7dd';
+            btn.style.color = '#0f5132';
+            setTimeout(() => {{
+                btn.innerText = originalText;
+                btn.style.backgroundColor = '#f0f2f6';
+                btn.style.color = '#333';
+            }}, 2000);
+        }}).catch(function(err) {{
+            console.error('복사 실패: ', err);
+        }});
+    }}
+    </script>
+    """
+    components.html(html_code, height=38)
+
+st.title("⚛️ BTMPhysics 물리 AI 튜터")
 st.caption("선생님의 강의와 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 # 3. API 키 설정
@@ -74,7 +115,7 @@ if os.path.exists("lecture_notes.md"):
     with open("lecture_notes.md", "r", encoding="utf-8") as f:
         lecture_knowledge = f.read()
 
-# 5. 물리 교사 시스템 지침
+# 5. 물리 교사 시스템 지침 (수식 + 시각화 도식 규칙 포함)
 PHYSICS_INSTRUCTION = f"""
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
 
@@ -85,6 +126,11 @@ PHYSICS_INSTRUCTION = f"""
 [선생님 전용 심화 강의록]
 {lecture_knowledge}
 
+[시각 자료 및 그림 작성 필수 원칙]
+1. 절대로 텍스트 기호(+--, | 등)나 아스키(ASCII) 아트로 그림을 그리지 마세요.
+2. 물리 상황도(자유물체도, 빗면, 회로도, 궤적, 그래프 등) 시각 자료가 필요한 경우, 반드시 실행 가능한 Python matplotlib 코드를 ```python ... ``` 코드 블록으로 작성하세요.
+3. matplotlib 코드 작성 시 plt.show()를 호출하지 말고 fig, ax = plt.subplots(...) 형태로 작성하세요.
+
 [수식 표기 및 렌더링 규칙]
 1. 문장 속 인라인 수식: $mg \\sin\\theta$ 와 같이 달러 기호 양 끝에 공백 없이 작성.
 2. 독립 블록 수식: 중요한 유도 공식은 줄바꿈 후 $$...$$ 사용.
@@ -94,24 +140,47 @@ PHYSICS_INSTRUCTION = f"""
 2. 강의록에 수록된 핵심 직관과 판서 유도 순서를 존중하여 힌트를 제공할 것.
 """
 
-# 6. 세션 및 이전 대화 화면 출력
+# 6. AI 텍스트와 시각화 코드를 분리하여 화면에 렌더링하는 함수
+def render_assistant_content(content):
+    code_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
+    clean_text = re.sub(r"```python.*?```", "", content, flags=re.DOTALL).strip()
+    
+    if clean_text:
+        st.markdown(clean_text)
+        
+    for code in code_blocks:
+        try:
+            local_vars = {"plt": plt}
+            exec(code.strip(), {}, local_vars)
+            fig = plt.gcf()
+            st.pyplot(fig)
+            plt.clf()
+        except Exception:
+            pass
+
+# 7. 세션 및 이전 대화 화면 출력
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 아바타 아이콘 지정 (선생님: 👨‍🏫 또는 ⚛️, 학생: 🧑‍🎓)
 AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
-for message in st.session_state.messages:
+for idx, message in enumerate(st.session_state.messages):
     avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
     with st.chat_message(message["role"], avatar=avatar):
-        st.markdown(message["content"])
+        if message["role"] == "assistant":
+            render_assistant_content(message["content"])
+            copy_button_widget(message["content"], button_label="📋 답변 전체 복사")
+        else:
+            st.markdown(message["content"])
+            copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 7. 학생 질문 처리
+# 8. 학생 질문 처리
 if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
+        copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
     recent_messages = st.session_state.messages[-6:]
     contents = []
@@ -130,7 +199,6 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
     with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
         
-        # 💡 대기 시간 동안 보여줄 동적 애니메이션 박스
         response_placeholder.markdown("""
         <div class="thinking-box">
             <span class="tutor-active-icon">👨‍🏫</span>
@@ -151,7 +219,10 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
                 if chunk.text:
                     full_response += chunk.text
                     response_placeholder.markdown(full_response + "▌")
-            response_placeholder.markdown(full_response)
+                    
+            response_placeholder.empty()
+            render_assistant_content(full_response)
+            copy_button_widget(full_response, button_label="📋 답변 전체 복사")
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
@@ -159,7 +230,7 @@ if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문�
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-# 8. 좌측 사이드바: 학습 기록 다운로드 및 초기화
+# 9. 좌측 사이드바: 학습 기록 다운로드 및 초기화
 with st.sidebar:
     st.header("📚 나의 학습 관리")
     
