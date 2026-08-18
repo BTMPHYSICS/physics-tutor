@@ -80,7 +80,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         
         try:
             response_stream = client.models.generate_content_stream(
-                model="gemini-3.6-flash",
+                model="gemini-2.5-flash",
                 contents=contents,
                 config=config
             )
