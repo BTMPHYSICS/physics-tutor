@@ -1,10 +1,9 @@
 import os
 import streamlit as st
-import time
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정
+# 1. 페이지 설정
 st.set_page_config(
     page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
@@ -12,58 +11,57 @@ st.set_page_config(
 )
 
 st.title("⚛️ 과학고 물리 AI 튜터")
-st.caption("물리 개념 탐구, 유도 과정 검토, 오개념 교정을 돕는 인공지능 교사입니다.")
+st.caption("선생님의 강의와 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
-# 2. 안전한 API 키 로드 (Streamlit Secrets 사용)
+# 2. API 키 설정
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
-
 if not api_key:
-    st.error("GEMINI_API_KEY가 설정되지 않았습니다. Streamlit 설정(Secrets)에서 등록해 주세요.")
+    st.error("GEMINI_API_KEY가 설정되지 않았습니다.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
 
-# 3. 물리 교사 시스템 지침
-PHYSICS_INSTRUCTION = """
+# 3. 추출된 강의록(lecture_notes.md) 불러오기
+lecture_knowledge = ""
+if os.path.exists("lecture_notes.md"):
+    with open("lecture_notes.md", "r", encoding="utf-8") as f:
+        lecture_knowledge = f.read()
+
+# 4. 물리 교사 시스템 지침 (선생님 강의록 지식 결합)
+PHYSICS_INSTRUCTION = f"""
 당신은 과학고등학교 학생들을 지도하는 탁월한 물리 교사이자 멘토입니다.
-고전역학, 전자기학, 열역학, 파동 및 광학, 현대물리학 전반에 걸쳐 학문적 엄밀성과 직관을 제공하세요.
+반드시 아래에 제공된 [선생님 전용 심화 강의록]의 설명 체계, 유도 논리, 오개념 지적 사항을 최우선 기준으로 삼아 학생들을 지도하세요.
+
+[선생님 전용 심화 강의록]
+{lecture_knowledge}
 
 [수식 표기 및 렌더링 규칙]
-1. 문장 속 인라인 수식(Inline Math) 작성 규칙:
-   - 반드시 단일 달러 기호($)를 사용하되, 달러 기호와 내부 수식 사이에 절대 공백을 두지 마세요.
-     * 올바른 예: $mg \\sin\\theta$, $a = R\\alpha$, $m_1 + m_2$
-     * 잘못된 예: $ mg \\sin\\theta $, $ a = R\\alpha $
-   - 문장 속 부등호는 HTML 태그 충돌을 방지하기 위해 \\gt, \\lt 사용을 권장합니다.
-     * 올바른 예: $a \\gt 0$, $v \\lt c$
+1. 문장 속 인라인 수식: $mg \\sin\\theta$ 와 같이 달러 기호 양 끝에 공백 없이 작성.
+2. 독립 블록 수식: 중요한 유도 공식은 줄바꿈 후 $$...$$ 사용.
 
-2. 독립 블록 수식(Block Math) 작성 규칙:
-   - 중요한 유도 공식이나 핵심 방정식은 반드시 앞뒤 줄바꿈 후 더블 달러 기호($$)를 사용하세요.
-     * 예시:
-       $$\\Sigma \\tau = I\\alpha$$
-
-3. 교육 및 지도 원칙:
-   - 정답을 바로 주지 말고 소크라테스식 발문으로 핵심 물리 법칙(보존 법칙, 운동 방정식 등)을 먼저 생각하게 유도하세요.
-   - 단위 분석(Dimensional Analysis) 및 극한 조건에서의 물리적 타당성을 함께 짚어주세요.
-   - 오개념이 발견되면 원인을 논리적으로 짚어주세요.
+[지도 원칙]
+1. 정답을 바로 주지 말고 소크라테스식 발문으로 유도할 것.
+2. 강의록에 수록된 핵심 직관과 판서 유도 순서를 존중하여 힌트를 제공할 것.
 """
 
-# 4. 세션 대화 기록 초기화
+# 5. 세션 및 이전 대화 렌더링
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 5. 이전 대화 화면 렌더링
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# 6. 학생 질문 입력 및 응답 생성
-if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
+# 6. 학생 질문 처리 (토큰 절약 및 최신 대화 전송)
+if prompt := st.chat_input("강의 내용이나 물리 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # 최근 대화 히스토리 구성
+    recent_messages = st.session_state.messages[-6:]
     contents = []
-    for msg in st.session_state.messages:
+    for msg in recent_messages:
         role = "user" if msg["role"] == "user" else "model"
         contents.append({
             "role": role,
@@ -90,13 +88,9 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                     full_response += chunk.text
                     response_placeholder.markdown(full_response + "▌")
             response_placeholder.markdown(full_response)
-            
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
-            if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                error_msg = "현재 접속 요청이 많아 일시적으로 사용량이 초과되었습니다. 약 30초~1분 후 다시 질문해 주세요."
-            else:
-                error_msg = f"응답 생성 중 오류가 발생했습니다: {str(e)}"
+            error_msg = f"응답 생성 중 오류가 발생했습니다: {str(e)}"
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
