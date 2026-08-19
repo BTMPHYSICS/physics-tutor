@@ -417,14 +417,15 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 12. 학생 질문 처리 (안정적 스트리밍 생성)
+# 12. 초고속 실시간 스트리밍 질문 처리
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
         copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
-    recent_messages = st.session_state.messages[-6:]
+    # 최근 문맥 4개로 제한하여 전송 속도 최적화
+    recent_messages = st.session_state.messages[-4:]
     contents = []
     for msg in recent_messages:
         role = "user" if msg["role"] == "user" else "model"
@@ -449,18 +450,26 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         """, unsafe_allow_html=True)
         
         full_response = ""
-        max_retries = 3
-        retry_delay = 1.5
+        is_first_chunk = True
+        
+        # 첫 응답 속도가 가장 빠른 gemini-2.5-flash 기본 사용 (실패 시 3.6-flash 폴백)
+        candidate_models = ["gemini-2.5-flash", "gemini-3.6-flash"]
+        success = False
 
-        for attempt in range(max_retries):
+        for target_model in candidate_models:
             try:
                 response_stream = client.models.generate_content_stream(
-                    model="gemini-3.6-flash",
+                    model=target_model,
                     contents=contents,
                     config=config
                 )
                 for chunk in response_stream:
                     if chunk.text:
+                        # 첫 글자가 도착하자마자 대기 박스를 비우고 즉시 타이핑 렌더링
+                        if is_first_chunk:
+                            response_placeholder.empty()
+                            is_first_chunk = False
+                            
                         full_response += chunk.text
                         response_placeholder.markdown(full_response + "▌")
                         
@@ -468,16 +477,14 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                 render_assistant_content(full_response)
                 copy_button_widget(full_response, button_label="📋 답변 전체 복사")
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
+                success = True
                 break
 
             except Exception as e:
-                err_str = str(e)
-                if ("503" in err_str or "UNAVAILABLE" in err_str or "429" in err_str) and attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                else:
-                    error_msg = f"일시적으로 서버 연결이 불안정합니다. 잠시 후 다시 시도해 주세요. (오류: {err_str})"
-                    response_placeholder.markdown(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
-                    break
+                time.sleep(1.0)
+                continue
+
+        if not success:
+            error_msg = "일시적으로 응답이 지연되고 있습니다. 잠시 후 다시 질문해 주세요."
+            response_placeholder.markdown(error_msg)
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
