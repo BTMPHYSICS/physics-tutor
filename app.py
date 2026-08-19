@@ -2,6 +2,7 @@ import os
 import re
 import glob
 import time
+import json
 import datetime
 import streamlit as st
 import streamlit.components.v1 as components
@@ -16,43 +17,23 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="expanded"
 )
-# 2. 모바일 친화적 CSS 및 우측 하단 플로팅 왕관/배지 완벽 차단
+
+# 2. UI 스타일 최적화 CSS
 st.markdown("""
 <style>
 /* 메인 타이틀 크기 조정 */
-h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
+h1 { font-size: 1.5rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
 
-/* 답변 본문 소제목 크기 조정 */
-.stMarkdown h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
-.stMarkdown h2 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
-.stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
-.stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
+/* 단계별 소제목 크기 조정 */
+.stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
+.stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
+.stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
+.stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 상단 불필요한 기본 UI 숨김 */
-#MainMenu { visibility: hidden !important; display: none !important; }
+/* 불필요한 배포 버튼 및 내부 푸터 숨김 */
 .stDeployButton, .stAppDeployButton { display: none !important; }
-div[data-testid="stDecoration"] { display: none !important; }
-div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-
-/* 하단 푸터 완전 제거 */
-footer { display: none !important; visibility: hidden !important; height: 0px !important; }
-div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
-div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
-
-/* 우측 하단 왕관 배지, 원형 아이콘, Manage App 플로팅 위젯 완전 차단 */
-div[data-testid="stStatusWidget"] { display: none !important; visibility: hidden !important; }
-[data-testid="manage-app-button"] { display: none !important; visibility: hidden !important; }
-div[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="ProfileBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="stCommunityBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="manageApp"] { display: none !important; visibility: hidden !important; }
-.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
-div[data-testid="stBottomBlockContainer"] div[class*="floating"] { display: none !important; }
-
-/* 모바일 입력창 여백 안정화 */
-.stChatInputContainer {
-    padding-bottom: 10px !important;
-}
+footer { display: none !important; visibility: hidden !important; }
+div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
 
 /* 대기 시간 애니메이션 */
 @keyframes tutorPulse {
@@ -79,6 +60,45 @@ div[data-testid="stBottomBlockContainer"] div[class*="floating"] { display: none
 </style>
 """, unsafe_allow_html=True)
 
+# 클립보드 복사 컴포넌트
+def copy_button_widget(text_to_copy, button_label="📋 복사"):
+    clean_json = json.dumps(text_to_copy)
+    html_code = f"""
+    <div style="margin-top: 4px; margin-bottom: 8px;">
+        <button id="copy-btn" onclick="copyText()" style="
+            background-color: #f0f2f6;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        ">{button_label}</button>
+    </div>
+    <script>
+    function copyText() {{
+        const text = {clean_json};
+        navigator.clipboard.writeText(text).then(function() {{
+            const btn = document.getElementById('copy-btn');
+            const originalText = btn.innerText;
+            btn.innerText = '✅ 복사 완료!';
+            btn.style.backgroundColor = '#d1e7dd';
+            btn.style.color = '#0f5132';
+            setTimeout(() => {{
+                btn.innerText = originalText;
+                btn.style.backgroundColor = '#f0f2f6';
+                btn.style.color = '#333';
+            }}, 2000);
+        }}).catch(function(err) {{
+            console.error('복사 실패: ', err);
+        }});
+    }}
+    </script>
+    """
+    components.html(html_code, height=38)
+
 # 3. API 키 설정
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
@@ -87,7 +107,7 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 저장소 내 모든 강의록 자동 탐색 및 병합
+# 4. 저장소 내 모든 강의록 탐색 및 로드
 def load_all_lecture_notes():
     combined_notes = ""
     all_files = glob.glob("lecture_*.md") + glob.glob("data/*.md") + glob.glob("*.md")
@@ -144,7 +164,7 @@ if "messages" not in st.session_state:
 with st.expander("🛠️ 탑재된 강의 단원 확인 및 나의 학습 관리 열기", expanded=False):
     col1, col2 = st.columns(2)
     with col1:
-        st.write("📂 **현재 학습 완료된 단원 목록**")
+        st.markdown("**📂 현재 학습 완료된 단원 목록**")
         if loaded_file_list:
             for f_name in loaded_file_list:
                 st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
@@ -152,12 +172,12 @@ with st.expander("🛠️ 탑재된 강의 단원 확인 및 나의 학습 관�
             st.info("등록된 강의록 파일이 없습니다.")
             
     with col2:
-        st.write("📚 **학습 기록 관리**")
+        st.markdown("**📚 학습 기록 관리**")
         if len(st.session_state.messages) > 0:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- 학습 일시: {current_time}\n\n---\n\n"
+            export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
             for msg in st.session_state.messages:
-                role_title = "👤 학생 질문" if msg["role"] == "user" else "🤖 AI 튜터 피드백"
+                role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
                 export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
             
             file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -190,9 +210,9 @@ with st.sidebar:
     st.header("📚 나의 학습 관리")
     if len(st.session_state.messages) > 0:
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- 학습 일시: {current_time}\n\n---\n\n"
+        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
         for msg in st.session_state.messages:
-            role_title = "👤 학생 질문" if msg["role"] == "user" else "🤖 AI 튜터 피드백"
+            role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
             export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
         
         file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -271,14 +291,17 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar):
         if message["role"] == "assistant":
             render_assistant_content(message["content"])
+            copy_button_widget(message["content"], button_label="📋 답변 전체 복사")
         else:
             st.markdown(message["content"])
+            copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 10. 학생 질문 처리 (gemini-3.6-flash 및 안전한 재시도)
+# 10. 학생 질문 처리 (gemini-3.6-flash 적용 및 재시도 로직)
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
+        copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
     recent_messages = st.session_state.messages[-6:]
     contents = []
@@ -322,6 +345,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                         
                 response_placeholder.empty()
                 render_assistant_content(full_response)
+                copy_button_widget(full_response, button_label="📋 답변 전체 복사")
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
                 break
 
