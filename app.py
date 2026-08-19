@@ -2,7 +2,6 @@ import os
 import re
 import glob
 import time
-import json
 import datetime
 import streamlit as st
 import streamlit.components.v1 as components
@@ -10,7 +9,7 @@ import matplotlib.pyplot as plt
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정 (사이드바 기본 열림)
+# 1. 페이지 기본 설정
 st.set_page_config(
     page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
@@ -18,19 +17,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. UI 스타일 최적화 CSS (모바일 충돌 없이 단정하게 유지)
+# 2. 모바일 친화적 반응형 CSS (DOM 충돌 유발 코드 완전 배제)
 st.markdown("""
 <style>
-/* 1) 메인 타이틀 크기 조정 */
+/* 메인 타이틀 크기 조정 */
 h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
 
-/* 2) 답변 본문 소제목 크기 조정 */
+/* 단계별 소제목 크기 단정하게 축소 */
 .stMarkdown h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
 .stMarkdown h2 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
 .stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
 
-/* 3) 상/하단 불필요한 기본 UI 숨김 */
+/* 상단/하단 불필요한 기본 UI 숨김 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
@@ -40,12 +39,12 @@ footer { display: none !important; visibility: hidden !important; height: 0px !i
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
 
-/* 4) 모바일 입력창 안정화 */
+/* 모바일 가상 키보드 팝업 시 입력창 떨림 방지 */
 .stChatInputContainer {
-    padding-bottom: 8px !important;
+    padding-bottom: 10px !important;
 }
 
-/* 5) 대기 시간 애니메이션 */
+/* 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
@@ -70,104 +69,6 @@ div[data-testid="stBottom"] footer { display: none !important; visibility: hidde
 </style>
 """, unsafe_allow_html=True)
 
-# 하단 Built with Streamlit 및 Fullscreen 버튼 실시간 추적 강제 삭제 스크립트
-components.html("""
-<script>
-function removeHostControls() {
-    try {
-        const docs = [document, window.parent.document, window.top.document];
-        docs.forEach(doc => {
-            if (!doc) return;
-            // 1. Fullscreen 버튼 및 뷰어 배지 탐색
-            const targets = doc.querySelectorAll(`
-                footer,
-                [data-testid="stFooter"],
-                [class*="viewerBadge"],
-                [class*="ProfileBadge"],
-                .viewerBadge_container__1QSob,
-                a[href*="streamlit.io"],
-                button[title*="fullscreen" i],
-                button[aria-label*="fullscreen" i],
-                [data-testid="StyledFullScreenButton"],
-                div[class*="fullscreen"]
-            `);
-            targets.forEach(el => {
-                el.style.display = 'none';
-                el.style.visibility = 'hidden';
-                el.style.pointerEvents = 'none';
-                el.remove();
-            });
-        });
-    } catch (e) {
-        // 교차 출처 제약 발생 시 무시
-    }
-}
-setInterval(removeHostControls, 300);
-</script>
-""", height=0, width=0)
-
-# 클립보드 복사 컴포넌트
-def copy_button_widget(text_to_copy, button_label="📋 복사"):
-    clean_json = json.dumps(text_to_copy)
-    html_code = f"""
-    <div style="margin-top: 4px; margin-bottom: 8px;">
-        <button id="copy-btn" onclick="copyText()" style="
-            background-color: #f0f2f6;
-            border: 1px solid #d0d7de;
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 12px;
-            font-weight: 500;
-            color: #333;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        ">{button_label}</button>
-    </div>
-    <script>
-    function copyText() {{
-        const text = {clean_json};
-        if (navigator.clipboard && window.isSecureContext) {{
-            navigator.clipboard.writeText(text).then(function() {{
-                showSuccess();
-            }}).catch(function(err) {{
-                fallbackCopy(text);
-            }});
-        }} else {{
-            fallbackCopy(text);
-        }}
-    }}
-    function fallbackCopy(text) {{
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {{
-            document.execCommand('copy');
-            showSuccess();
-        }} catch (err) {{
-            console.error('복사 실패', err);
-        }}
-        document.body.removeChild(textArea);
-    }}
-    function showSuccess() {{
-        const btn = document.getElementById('copy-btn');
-        const originalText = btn.innerText;
-        btn.innerText = '✅ 복사 완료!';
-        btn.style.backgroundColor = '#d1e7dd';
-        btn.style.color = '#0f5132';
-        setTimeout(() => {{
-            btn.innerText = originalText;
-            btn.style.backgroundColor = '#f0f2f6';
-            btn.style.color = '#333';
-        }}, 2000);
-    }}
-    </script>
-    """
-    components.html(html_code, height=38)
-
 # 3. API 키 설정
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
@@ -176,7 +77,7 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 저장소 내 모든 강의록 탐색 및 로드
+# 4. 저장소 내 모든 강의록 자동 탐색 및 병합
 def load_all_lecture_notes():
     combined_notes = ""
     all_files = glob.glob("lecture_*.md") + glob.glob("data/*.md") + glob.glob("*.md")
@@ -233,7 +134,7 @@ if "messages" not in st.session_state:
 with st.expander("🛠️ 탑재된 강의 단원 확인 및 나의 학습 관리 열기", expanded=False):
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**📂 현재 학습 완료된 단원 목록**")
+        st.write("📂 **현재 학습 완료된 단원 목록**")
         if loaded_file_list:
             for f_name in loaded_file_list:
                 st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
@@ -241,12 +142,12 @@ with st.expander("🛠️ 탑재된 강의 단원 확인 및 나의 학습 관�
             st.info("등록된 강의록 파일이 없습니다.")
             
     with col2:
-        st.markdown("**📚 학습 기록 관리**")
+        st.write("📚 **학습 기록 관리**")
         if len(st.session_state.messages) > 0:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
+            export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- 학습 일시: {current_time}\n\n---\n\n"
             for msg in st.session_state.messages:
-                role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
+                role_title = "👤 학생 질문" if msg["role"] == "user" else "🤖 AI 튜터 피드백"
                 export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
             
             file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -279,9 +180,9 @@ with st.sidebar:
     st.header("📚 나의 학습 관리")
     if len(st.session_state.messages) > 0:
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
+        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- 학습 일시: {current_time}\n\n---\n\n"
         for msg in st.session_state.messages:
-            role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
+            role_title = "👤 학생 질문" if msg["role"] == "user" else "🤖 AI 튜터 피드백"
             export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
         
         file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
@@ -360,17 +261,14 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar):
         if message["role"] == "assistant":
             render_assistant_content(message["content"])
-            copy_button_widget(message["content"], button_label="📋 답변 전체 복사")
         else:
             st.markdown(message["content"])
-            copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 10. 학생 질문 처리 (gemini-3.6-flash 및 안정적 재시도)
+# 10. 학생 질문 처리 (gemini-3.6-flash 및 안전한 재시도)
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
-        copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
     recent_messages = st.session_state.messages[-6:]
     contents = []
@@ -414,7 +312,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                         
                 response_placeholder.empty()
                 render_assistant_content(full_response)
-                copy_button_widget(full_response, button_label="📋 답변 전체 복사")
                 st.session_state.messages.append({"role": "assistant", "content": full_response})
                 break
 
