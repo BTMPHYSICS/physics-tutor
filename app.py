@@ -17,9 +17,15 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. 동적 애니메이션 및 스타일 CSS 주입
+# 2. 동적 애니메이션, 제목 크기 최적화 및 스타일 CSS 주입
 st.markdown("""
 <style>
+/* 답변 내 제목 크기 축소 및 가독성 최적화 */
+.stMarkdown h1 { font-size: 1.25rem !important; font-weight: 700 !important; margin-top: 12px !important; margin-bottom: 6px !important; }
+.stMarkdown h2 { font-size: 1.15rem !important; font-weight: 600 !important; margin-top: 10px !important; margin-bottom: 5px !important; }
+.stMarkdown h3 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
+.stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
+
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
@@ -158,7 +164,7 @@ PHYSICS_INSTRUCTION = f"""
 2. 학생에게 정답을 바로 주지 말고, 강의록의 판서 단계를 바탕으로 소크라테스식 힌트를 단계별로 제공하세요.
 """
 
-# 6. 복합 콘텐츠 렌더링 함수 (스크롤 보장 및 새 탭 전체화면 다운로드 지원)
+# 6. 복합 콘텐츠 렌더링 함수 (가로 잘림 방지 반응형 CSS 자동 주입)
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -180,7 +186,25 @@ def render_assistant_content(content):
     for idx, html_code in enumerate(html_blocks):
         raw_html = html_code.strip()
         
-        # 1) Streamlit 네이티브 전체화면 다운로드 및 새 창 열기 지원
+        # 가로 컨트롤 박스 잘림 방지 CSS 자동 주입
+        responsive_wrapper = f"""
+        <style>
+            * {{ box-sizing: border-box !important; }}
+            body {{ margin: 0; padding: 4px; font-family: sans-serif; }}
+            canvas {{ max-width: 100% !important; height: auto !important; display: block; }}
+            div, fieldset, form {{ max-width: 100% !important; }}
+            .controls, div[class*="control"], div[style*="flex"] {{
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                width: 100% !important;
+            }}
+            input[type="range"] {{ max-width: 140px; }}
+            button, select, input {{ margin: 2px 0; }}
+        </style>
+        {raw_html}
+        """
+        
         col1, col2 = st.columns([2, 3])
         with col1:
             st.download_button(
@@ -193,8 +217,7 @@ def render_assistant_content(content):
         with col2:
             st.caption("다운로드한 html 파일을 브라우저로 열면 모니터 전체 크기로 실행됩니다.")
 
-        # 2) 대화창 내에서 스크롤바와 넉넉한 높이로 잘림 없이 실행
-        components.html(raw_html, height=650, scrolling=True)
+        components.html(responsive_wrapper, height=620, scrolling=True)
         
         
 # 7. 이전 대화 화면 렌더링
