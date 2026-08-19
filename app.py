@@ -70,6 +70,42 @@ div[data-testid="stBottom"] footer { display: none !important; visibility: hidde
 </style>
 """, unsafe_allow_html=True)
 
+# 하단 Built with Streamlit 및 Fullscreen 버튼 실시간 추적 강제 삭제 스크립트
+components.html("""
+<script>
+function removeHostControls() {
+    try {
+        const docs = [document, window.parent.document, window.top.document];
+        docs.forEach(doc => {
+            if (!doc) return;
+            // 1. Fullscreen 버튼 및 뷰어 배지 탐색
+            const targets = doc.querySelectorAll(`
+                footer,
+                [data-testid="stFooter"],
+                [class*="viewerBadge"],
+                [class*="ProfileBadge"],
+                .viewerBadge_container__1QSob,
+                a[href*="streamlit.io"],
+                button[title*="fullscreen" i],
+                button[aria-label*="fullscreen" i],
+                [data-testid="StyledFullScreenButton"],
+                div[class*="fullscreen"]
+            `);
+            targets.forEach(el => {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.pointerEvents = 'none';
+                el.remove();
+            });
+        });
+    } catch (e) {
+        // 교차 출처 제약 발생 시 무시
+    }
+}
+setInterval(removeHostControls, 300);
+</script>
+""", height=0, width=0)
+
 # 클립보드 복사 컴포넌트
 def copy_button_widget(text_to_copy, button_label="📋 복사"):
     clean_json = json.dumps(text_to_copy)
