@@ -57,7 +57,7 @@ div[data-testid="stFooter"] { display: none !important; visibility: hidden !impo
 </style>
 """, unsafe_allow_html=True)
 
-# 복합 콘텐츠 렌더링 함수 (시뮬레이터 내부 KaTeX 수식 자동 렌더링 지원)
+# 복합 콘텐츠 렌더링 함수 (시뮬레이터 내부 실시간 인라인/블록 KaTeX 수식 완벽 렌더링)
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -79,7 +79,6 @@ def render_assistant_content(content):
     for idx, html_code in enumerate(html_blocks):
         raw_html = html_code.strip()
         
-        # KaTeX 수식 엔진 및 자동 변환 스크립트 포함 래퍼
         responsive_wrapper = f"""
         <!DOCTYPE html>
         <html>
@@ -87,13 +86,7 @@ def render_assistant_content(content):
             <meta charset="utf-8">
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
             <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-            <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" 
-                    onload="renderMathInElement(document.body, {{
-                        delimiters: [
-                            {{left: '$$', right: '$$', display: true}},
-                            {{left: '$', right: '$', display: false}}
-                        ]
-                    }});"></script>
+            <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
             <style>
                 * {{ box-sizing: border-box !important; }}
                 body {{ margin: 0; padding: 6px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; }}
@@ -112,16 +105,27 @@ def render_assistant_content(content):
         <body>
             {raw_html}
             <script>
-                // DOM 변경 시에도 수식을 지속적으로 렌더링
-                document.addEventListener("DOMContentLoaded", function() {{
+                function renderMath() {{
                     if (window.renderMathInElement) {{
                         renderMathInElement(document.body, {{
                             delimiters: [
                                 {{left: '$$', right: '$$', display: true}},
                                 {{left: '$', right: '$', display: false}}
-                            ]
+                            ],
+                            throwOnError: false
                         }});
                     }}
+                }}
+                
+                window.addEventListener("load", () => {{
+                    renderMath();
+                    // 슬라이더 조작 등으로 HTML 내용이 실시간 바뀔 때도 인라인 수식 자동 재렌더링
+                    const observer = new MutationObserver(() => {{
+                        observer.disconnect();
+                        renderMath();
+                        observer.observe(document.body, {{ childList: true, subtree: true, characterData: true }});
+                    }});
+                    observer.observe(document.body, {{ childList: true, subtree: true, characterData: true }});
                 }});
             </script>
         </body>
