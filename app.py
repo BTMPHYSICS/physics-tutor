@@ -41,17 +41,28 @@ footer { display: none !important; visibility: hidden !important; height: 0px !i
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
 
-/* 5) 우측 하단 왕관 배지, 원형 아이콘, Manage App 플로팅 위젯 완전 영구 삭제 */
-div[data-testid="stStatusWidget"] { display: none !important; visibility: hidden !important; width: 0px !important; height: 0px !important; pointer-events: none !important; }
-[data-testid="manage-app-button"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-div[class*="viewerBadge"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-div[class*="ProfileBadge"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-div[class*="stCommunityBadge"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-div[class*="manageApp"] { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; pointer-events: none !important; }
-div[data-testid="stBottomBlockContainer"] div[class*="floating"] { display: none !important; visibility: hidden !important; }
-div:has(> [data-testid="manage-app-button"]) { display: none !important; }
-
+/* 5) PC 및 모바일 전용 왕관 배지, 원형 아이콘, Manage App 플로팅 위젯 완전 영구 삭제 */
+div[data-testid="stStatusWidget"],
+[data-testid="manage-app-button"],
+div[class*="viewerBadge"],
+div[class*="ProfileBadge"],
+div[class*="stCommunityBadge"],
+div[class*="manageApp"],
+div[class*="FloatingElement"],
+div[class*="floating"],
+.viewerBadge_container__1QSob,
+div[data-testid="stBottomBlockContainer"] div[class*="floating"],
+div:has(> [data-testid="manage-app-button"]),
+div:has(> button[aria-label*="Manage"]),
+div[style*="z-index: 999999"],
+div[style*="z-index: 1000000"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0px !important;
+    height: 0px !important;
+    pointer-events: none !important;
+}
 /* 6) 모바일 입력창 안정화 */
 .stChatInputContainer {
     padding-bottom: 10px !important;
