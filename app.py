@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 모바일/데스크톱 호환 반응형 CSS (자바스크립트 충돌 제거)
+# 2. 모바일 호환 및 왕관 배지/하단 푸터 완벽 차단 CSS
 st.markdown("""
 <style>
 /* 1) 메인 타이틀 크기 조정 */
@@ -30,22 +30,31 @@ h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 
 .stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
 
-/* 3) 상/하단 불필요한 기본 UI 숨김 */
+/* 3) 상단 불필요 버튼 숨김 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
 div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
 div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
-footer { display: none !important; visibility: hidden !important; }
-div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
-div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
 
-/* 4) 모바일 입력창(chat_input) 레이아웃 안정화 */
+/* 4) 하단 푸터, 왕관(👑) 배지, Streamlit 워터마크 완전 차단 */
+footer { display: none !important; visibility: hidden !important; height: 0px !important; }
+div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
+div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
+div[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
+div[class*="ProfileBadge"] { display: none !important; visibility: hidden !important; }
+div[class*="stCommunityBadge"] { display: none !important; visibility: hidden !important; }
+div[class*="crown"] { display: none !important; visibility: hidden !important; }
+.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
+a[href*="streamlit.io"] { display: none !important; visibility: hidden !important; }
+div[data-testid="stBottomBlockContainer"] > div:has(a[href*="streamlit.io"]) { display: none !important; }
+
+/* 5) 모바일 입력창 안정화 */
 .stChatInputContainer {
     padding-bottom: 8px !important;
 }
 
-/* 5) 대기 시간 애니메이션 */
+/* 6) 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
