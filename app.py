@@ -17,19 +17,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 모바일 친화적 반응형 CSS (DOM 충돌 유발 코드 완전 배제)
+# 2. 모바일 친화적 CSS 및 모든 풀스크린(화살표) 버튼 완전 무력화
 st.markdown("""
 <style>
-/* 메인 타이틀 크기 조정 */
+/* 1) 메인 타이틀 크기 조정 */
 h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
 
-/* 단계별 소제목 크기 단정하게 축소 */
+/* 2) 답변 본문 소제목 크기 조정 */
 .stMarkdown h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
 .stMarkdown h2 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
 .stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
 
-/* 상단/하단 불필요한 기본 UI 숨김 */
+/* 3) 상단 불필요한 기본 UI 숨김 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
@@ -39,12 +39,26 @@ footer { display: none !important; visibility: hidden !important; height: 0px !i
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
 
-/* 모바일 가상 키보드 팝업 시 입력창 떨림 방지 */
+/* 4) 시뮬레이션 및 그래프 우측 Fullscreen(화살표) 버튼 완전 삭제 및 클릭 비활성화 */
+button[title*="fullscreen" i],
+button[title*="View fullscreen" i],
+button[aria-label*="fullscreen" i],
+[data-testid="StyledFullScreenButton"],
+.overlayBtn {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0px !important;
+    height: 0px !important;
+}
+
+/* 5) 모바일 입력창 안정화 */
 .stChatInputContainer {
     padding-bottom: 10px !important;
 }
 
-/* 대기 시간 애니메이션 */
+/* 6) 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
