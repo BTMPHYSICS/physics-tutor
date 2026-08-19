@@ -17,69 +17,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 모바일 친화적 CSS 및 모든 풀스크린(화살표) 버튼 완전 무력화
 st.markdown("""
 <style>
-/* 1) 메인 타이틀 크기 조정 */
-h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
-
-/* 2) 답변 본문 소제목 크기 조정 */
-.stMarkdown h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
-.stMarkdown h2 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
-.stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
-.stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
-
-/* 3) 상단 불필요한 기본 UI 숨김 */
+/* 불필요한 기본 요소 숨김 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
-div[data-testid="stDecoration"] { display: none !important; }
-div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
 footer { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
 
-/* 4) 시뮬레이션 및 그래프 우측 Fullscreen(화살표) 버튼 완전 삭제 및 클릭 비활성화 */
-button[title*="fullscreen" i],
-button[title*="View fullscreen" i],
-button[aria-label*="fullscreen" i],
-[data-testid="StyledFullScreenButton"],
-.overlayBtn {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    width: 0px !important;
-    height: 0px !important;
-}
-
-/* 5) 모바일 입력창 안정화 */
+/* 모바일 가상 키보드 팝업 시 레이아웃 충돌 방지 */
 .stChatInputContainer {
     padding-bottom: 10px !important;
 }
-
-/* 6) 대기 시간 애니메이션 */
-@keyframes tutorPulse {
-    0% { transform: scale(1); opacity: 0.8; }
-    50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
-    100% { transform: scale(1); opacity: 0.8; }
-}
-@keyframes spinSlow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-.thinking-box {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    background-color: rgba(74, 144, 226, 0.08);
-    border-radius: 10px;
-    margin-bottom: 12px;
-}
-.tutor-active-icon { font-size: 24px; display: inline-block; animation: tutorPulse 1.4s infinite ease-in-out; }
-.tutor-atom-icon { font-size: 22px; display: inline-block; animation: spinSlow 3s linear infinite; }
-.thinking-text { color: #4A90E2; font-weight: 600; font-size: 0.95rem; }
 </style>
 """, unsafe_allow_html=True)
 
