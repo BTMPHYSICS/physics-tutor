@@ -17,42 +17,48 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 상/하단 모든 기본 UI 숨김
+# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 배포 환경 상/하단 모든 UI 완전 숨김
 st.markdown("""
 <style>
-/* 상단 메인 타이틀 크기 축소 및 여백 조정 */
+/* 1) 상단 메인 타이틀 크기 축소 및 여백 조정 */
 h1#과학고-물리-ai-튜터, .stTitle, h1 {
     font-size: 1.55rem !important;
     font-weight: 700 !important;
     margin-bottom: 0.2rem !important;
 }
 
-/* 답변 본문 내 단계별 소제목 크기 축소 */
+/* 2) 답변 본문 내 단계별 소제목 크기 단정하게 축소 */
 .stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
 .stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 상단 햄버거 메뉴, Deploy 버튼, 헤더 완전 제거 */
-#MainMenu {visibility: hidden !important; display: none !important;}
-header {visibility: hidden !important; display: none !important;}
-.stDeployButton {display: none !important;}
-div[data-testid="stDecoration"] {display: none !important;}
-div[data-testid="stStatusWidget"] {visibility: hidden !important;}
+/* 3) 상단 햄버거 메뉴, Deploy 버튼, 헤더 완전 제거 */
+#MainMenu { visibility: hidden !important; display: none !important; }
+header { visibility: hidden !important; display: none !important; height: 0px !important; }
+header[data-testid="stHeader"] { visibility: hidden !important; display: none !important; }
+.stDeployButton { display: none !important; }
+div[data-testid="stDecoration"] { display: none !important; }
+div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
+div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
 
-/* 하단 푸터 및 Streamlit 워터마크 완전 제거 */
-footer {visibility: hidden !important; display: none !important;}
-footer:after {content: "" !important; display: none !important;}
-div[class*="viewerBadge"] {display: none !important;}
-.viewerBadge_container__1QSob {display: none !important;}
+/* 4) 배포 URL 하단 푸터, 워터마크, Streamlit 배지 완전 제거 */
+footer { visibility: hidden !important; display: none !important; }
+footer * { visibility: hidden !important; display: none !important; }
+div[data-testid="stFooter"] { visibility: hidden !important; display: none !important; }
+div[data-testid="stBottom"] footer { display: none !important; }
+div[class*="viewerBadge"] { display: none !important; }
+div[class*="ProfileBadge"] { display: none !important; }
+.viewerBadge_container__1QSob { display: none !important; }
+a[href*="streamlit.io"] { display: none !important; }
 
-/* 상단/하단 불필요한 빈 여백 제거 */
+/* 5) 상/하단 빈 여백 최적화 */
 .block-container {
-    padding-top: 1.8rem !important;
-    padding-bottom: 1.5rem !important;
+    padding-top: 1.5rem !important;
+    padding-bottom: 2rem !important;
 }
 
-/* 대기 시간 동적 애니메이션 */
+/* 6) 대기 시간 동적 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
