@@ -417,14 +417,13 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 12. 초고속 실시간 스트리밍 질문 처리
+# 12. 라우팅 기반 초고속 실시간 스트리밍 질문 처리
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
         st.markdown(prompt)
         copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
-    # 최근 문맥 4개로 제한하여 전송 속도 최적화
     recent_messages = st.session_state.messages[-4:]
     contents = []
     for msg in recent_messages:
@@ -433,11 +432,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
             "role": role,
             "parts": [{"text": msg["content"]}]
         })
-
-    config = types.GenerateContentConfig(
-        system_instruction=PHYSICS_INSTRUCTION,
-        temperature=0.2
-    )
 
     with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
@@ -449,10 +443,26 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         </div>
         """, unsafe_allow_html=True)
         
+        # [핵심] 일상 대화 판별 로직
+        is_casual = False
+        casual_keywords = ["안녕", "고마워", "감사", "반가워", "수고", "잘가", "좋은", "그래", "맞아"]
+        if len(prompt) < 15 and any(keyword in prompt for keyword in casual_keywords):
+            is_casual = True
+
+        # 일상 대화면 가벼운 지침, 물리 질문이면 무거운 강의록 포함
+        if is_casual:
+            dynamic_instruction = "당신은 친절한 과학고 물리 교사입니다. 학생의 인사에 1~2문장으로 가볍고 다정하게 답변하세요. 물리 수식이나 개념 설명은 생략합니다."
+        else:
+            dynamic_instruction = PHYSICS_INSTRUCTION
+
+        config = types.GenerateContentConfig(
+            system_instruction=dynamic_instruction,
+            temperature=0.2
+        )
+        
         full_response = ""
         is_first_chunk = True
         
-        # 첫 응답 속도가 가장 빠른 gemini-2.5-flash 기본 사용 (실패 시 3.6-flash 폴백)
         candidate_models = ["gemini-2.5-flash", "gemini-3.6-flash"]
         success = False
 
@@ -465,7 +475,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                 )
                 for chunk in response_stream:
                     if chunk.text:
-                        # 첫 글자가 도착하자마자 대기 박스를 비우고 즉시 타이핑 렌더링
                         if is_first_chunk:
                             response_placeholder.empty()
                             is_first_chunk = False
