@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. UI 스타일 최적화 CSS
+# 2. UI 스타일 최적화 CSS (사이드바 토글 버튼 유지 및 상단 UI 정리)
 st.markdown("""
 <style>
 /* 메인 타이틀 크기 조정 */
@@ -30,11 +30,10 @@ h1 { font-size: 1.5rem !important; font-weight: 700 !important; margin-bottom: 0
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 불필요한 기본 UI 숨김 */
+/* 불필요한 기본 UI만 숨김 (사이드바 토글 화살표 버튼은 유지) */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
-div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
 div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
 footer { display: none !important; visibility: hidden !important; }
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
@@ -191,24 +190,57 @@ elif learning_score > 0:
 else:
     grade_label = "탐구 준비 중"
 
-# 8. 좌측 사이드바: 나의 학습 관리 대시보드
+# 8. 메인 화면 상단 접이식 대시보드 (모바일 화면 전용 직접 확인창)
+with st.expander("📊 나의 학습 성취도 및 리포트 관리 열기", expanded=False):
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric(label="총 학습 점수", value=f"{learning_score}점", delta=f"{grade_label}" if q_count > 0 else None)
+        st.write(f"**참여도** (질문 {q_count}회)")
+        st.progress(engagement_rate)
+        st.write(f"**성실도** ({int(diligence_rate * 100)}%)")
+        st.progress(diligence_rate)
+    with col2:
+        if q_count > 0:
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            export_text = f"# ⚛️ BTMPHYSICS AI Tutor 학습 리포트\n"
+            export_text += f"- **학습 일시**: {current_time}\n"
+            export_text += f"- **최종 점수**: {learning_score}점 ({grade_label})\n"
+            export_text += f"- **질문 횟수**: {q_count}회 | **성실도**: {int(diligence_rate * 100)}%\n\n---\n\n"
+            
+            for msg in st.session_state.messages:
+                role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
+                export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
+            
+            file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+            st.download_button(
+                label="📥 학습 기록 다운로드 (.md)",
+                data=export_text,
+                file_name=f"물리학습리포트_{file_date}.md",
+                mime="text/markdown",
+                key="main_download_btn",
+                use_container_width=True
+            )
+            if st.button("🗑️ 대화 기록 초기화", key="main_reset_btn", use_container_width=True):
+                st.session_state.messages = []
+                st.rerun()
+        else:
+            st.caption("질문을 입력하면 성취도와 점수가 집계됩니다.")
+
+st.markdown("---")
+
+# 9. 좌측 사이드바: 나의 학습 관리 대시보드
 with st.sidebar:
     st.header("📚 나의 학습 관리")
-    
-    # 종합 점수 및 등급
     st.metric(label="총 학습 점수", value=f"{learning_score}점", delta=f"{grade_label}" if q_count > 0 else None)
     
-    # 참여도
     st.write(f"**참여도** (질문 {q_count}회)")
     st.progress(engagement_rate)
     
-    # 성실도
     st.write(f"**성실도** ({int(diligence_rate * 100)}%)")
     st.progress(diligence_rate)
     
     st.markdown("---")
     
-    # 학습 리포트 다운로드 및 초기화
     if q_count > 0:
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
         export_text = f"# ⚛️ BTMPHYSICS AI Tutor 학습 리포트\n"
@@ -235,7 +267,7 @@ with st.sidebar:
     else:
         st.caption("질문을 남기면 참여도와 학습 점수가 실시간으로 반영됩니다.")
 
-# 9. 복합 콘텐츠 렌더링 함수
+# 10. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -287,7 +319,7 @@ def render_assistant_content(content):
 
         components.html(responsive_wrapper, height=620, scrolling=True)
 
-# 10. 이전 대화 화면 렌더링
+# 11. 이전 대화 화면 렌더링
 AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
@@ -301,7 +333,7 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 11. 학생 질문 처리
+# 12. 학생 질문 처리 (안정적 스트리밍 생성)
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
