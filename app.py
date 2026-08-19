@@ -132,7 +132,7 @@ def copy_button_widget(text_to_copy, button_label="📋 복사"):
     </script>
     """
     components.html(html_code, height=38)
-
+    
 st.title("⚛️ BTMPHYSICS AI TUTOR")
 st.caption("선생님의 강의 영상과 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
@@ -247,7 +247,7 @@ def render_assistant_content(content):
         components.html(responsive_wrapper, height=620, scrolling=True)
         
         
-# 7. 이전 대화 화면 렌더링
+# 7. 이전 대화 화면 렌더링 (복사 버튼 포함)
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -312,6 +312,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                         full_response += chunk.text
                         response_placeholder.markdown(full_response + "▌")
                         
+                # ... 스트리밍 루프 완료 후 ...
                 response_placeholder.empty()
                 render_assistant_content(full_response)
                 copy_button_widget(full_response, button_label="📋 답변 전체 복사")
