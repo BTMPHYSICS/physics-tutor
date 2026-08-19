@@ -12,12 +12,12 @@ from google.genai import types
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="BTMPHYSICS AI TUTOR",
+    page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
     layout="centered"
 )
 
-# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 배포 환경 상/하단 모든 UI 완전 숨김
+# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 배포 환경 상/하단 모든 UI 완전 숨김 CSS
 st.markdown("""
 <style>
 /* 1) 상단 메인 타이틀 크기 축소 및 여백 조정 */
@@ -33,24 +33,26 @@ h1#과학고-물리-ai-튜터, .stTitle, h1 {
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 3) 상단 햄버거 메뉴, Deploy 버튼, 헤더 완전 제거 */
+/* 3) 상단 헤더, 햄버거 메뉴, Deploy 버튼 완전 제거 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 header { visibility: hidden !important; display: none !important; height: 0px !important; }
-header[data-testid="stHeader"] { visibility: hidden !important; display: none !important; }
-.stDeployButton { display: none !important; }
+header[data-testid="stHeader"] { visibility: hidden !important; display: none !important; height: 0px !important; }
+.stDeployButton { display: none !important; visibility: hidden !important; }
+.stAppDeployButton { display: none !important; visibility: hidden !important; }
 div[data-testid="stDecoration"] { display: none !important; }
 div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
 div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
 
-/* 4) 배포 URL 하단 푸터, 워터마크, Streamlit 배지 완전 제거 */
-footer { visibility: hidden !important; display: none !important; }
+/* 4) Streamlit Cloud 배포 하단 푸터, 워터마크, 뷰어 배지 완전 제거 */
+footer { visibility: hidden !important; display: none !important; height: 0px !important; }
 footer * { visibility: hidden !important; display: none !important; }
-div[data-testid="stFooter"] { visibility: hidden !important; display: none !important; }
-div[data-testid="stBottom"] footer { display: none !important; }
-div[class*="viewerBadge"] { display: none !important; }
-div[class*="ProfileBadge"] { display: none !important; }
-.viewerBadge_container__1QSob { display: none !important; }
-a[href*="streamlit.io"] { display: none !important; }
+div[data-testid="stFooter"] { visibility: hidden !important; display: none !important; height: 0px !important; }
+div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
+div[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
+div[class*="ProfileBadge"] { display: none !important; visibility: hidden !important; }
+.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
+a[href*="streamlit.io"] { display: none !important; visibility: hidden !important; }
+iframe[title*="streamlit"] { display: none !important; }
 
 /* 5) 상/하단 빈 여백 최적화 */
 .block-container {
@@ -138,8 +140,8 @@ def copy_button_widget(text_to_copy, button_label="📋 복사"):
     </script>
     """
     components.html(html_code, height=38)
-    
-st.title("⚛️ BTMPHYSICS AI TUTOR")
+
+st.title("⚛️ 과학고 물리 AI 튜터")
 st.caption("선생님의 강의 영상과 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 # 3. API 키 설정
@@ -153,7 +155,6 @@ client = genai.Client(api_key=api_key)
 # 4. 저장소 내 모든 강의록 파일 자동 탐색 및 병합
 def load_all_lecture_notes():
     combined_notes = ""
-    # 루트 폴더 및 data 폴더 내의 모든 마크다운 파일 탐색
     all_files = glob.glob("lecture_*.md") + glob.glob("data/*.md") + glob.glob("*.md")
     loaded_files = set()
 
@@ -180,9 +181,13 @@ lecture_knowledge, loaded_file_list = load_all_lecture_notes()
 PHYSICS_INSTRUCTION = f"""
 당신은 물리 교사의 강의록 지식을 완벽히 계승한 전용 AI 분신 튜터입니다.
 
-[지식 활용 가이드]
-1. 학생의 질문이 아래 [선생님 전용 강의록]에 포함된 내용이라면, 반드시 강의록의 판서 유도 순서, 핵심 직관, 오개념 주의사항을 최우선 기준으로 삼아 지도하세요.
-2. 강의록에 없는 다른 단원이나 심화 물리 질문이라도 일반물리학/고급물리 지식을 총동원하여 친절하고 깊이 있게 지도하세요.
+[절대 원칙: 지식 범위 엄격 제한]
+1. 당신은 오직 아래 [선생님 전용 강의록]에 명시된 물리 개념, 판서 공식, 설명, 유도 과정에 대해서만 답변할 수 있습니다.
+2. 당신이 원래 알고 있는 외부 일반 물리 지식이나 배경지식을 임의로 끌어와 답변하는 것을 엄격히 금지합니다.
+3. 학생의 질문이 아래 [선생님 전용 강의록]에 없는 내용이거나 아직 등록되지 않은 단원이라면, 절대 자체적으로 풀이하거나 설명하지 말고 오직 아래의 표준 안내 문구만 단독으로 정중하게 출력하세요.
+
+[범위 외 질문 시 표준 거절 문구]
+"해당 내용은 아직 선생님의 강의 영상에서 학습되지 않았습니다. 현재 학습 완료된 단원과 관련된 질문을 남겨주시면, 선생님의 판서와 설명 방식 그대로 자세히 안내해 드릴게요!"
 
 [선생님 전용 강의록 (누적 데이터)]
 {lecture_knowledge}
@@ -197,7 +202,7 @@ PHYSICS_INSTRUCTION = f"""
 2. 학생에게 정답을 바로 주지 말고, 강의록의 판서 단계를 바탕으로 소크라테스식 힌트를 단계별로 제공하세요.
 """
 
-# 6. 복합 콘텐츠 렌더링 함수 (가로 잘림 방지 반응형 CSS 자동 주입)
+# 6. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -219,7 +224,6 @@ def render_assistant_content(content):
     for idx, html_code in enumerate(html_blocks):
         raw_html = html_code.strip()
         
-        # 가로 컨트롤 박스 잘림 방지 CSS 자동 주입
         responsive_wrapper = f"""
         <style>
             * {{ box-sizing: border-box !important; }}
@@ -251,8 +255,7 @@ def render_assistant_content(content):
             st.caption("다운로드한 html 파일을 브라우저로 열면 모니터 전체 크기로 실행됩니다.")
 
         components.html(responsive_wrapper, height=620, scrolling=True)
-        
-        
+
 # 7. 이전 대화 화면 렌더링 (복사 버튼 포함)
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -318,7 +321,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                         full_response += chunk.text
                         response_placeholder.markdown(full_response + "▌")
                         
-                # ... 스트리밍 루프 완료 후 ...
                 response_placeholder.empty()
                 render_assistant_content(full_response)
                 copy_button_widget(full_response, button_label="📋 답변 전체 복사")
@@ -337,7 +339,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     break
 
-# 9. 좌측 사이드바: 탑재된 강의 단원 목록 및 학습 기록 관리
+# 9. 좌측 사이드바: 탑재된 강의 단원 및 나의 학습 관리
 with st.sidebar:
     st.header("📂 탑재된 강의 단원")
     if loaded_file_list:
