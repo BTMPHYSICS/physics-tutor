@@ -59,6 +59,91 @@ div[data-testid="stFooter"] { display: none !important; visibility: hidden !impo
 </style>
 """, unsafe_allow_html=True)
 
+# 복합 콘텐츠 렌더링 함수 (시뮬레이터 내부 KaTeX 수식 자동 렌더링 지원)
+def render_assistant_content(content):
+    html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
+    py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
+    
+    clean_text = re.sub(r"```(html|python).*?```", "", content, flags=re.DOTALL).strip()
+    if clean_text:
+        st.markdown(clean_text)
+        
+    for py_code in py_blocks:
+        try:
+            local_vars = {"plt": plt}
+            exec(py_code.strip(), {}, local_vars)
+            fig = plt.gcf()
+            st.pyplot(fig)
+            plt.clf()
+        except Exception:
+            pass
+
+    for idx, html_code in enumerate(html_blocks):
+        raw_html = html_code.strip()
+        
+        # KaTeX 수식 엔진 및 자동 변환 스크립트 포함 래퍼
+        responsive_wrapper = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+            <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+            <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" 
+                    onload="renderMathInElement(document.body, {{
+                        delimiters: [
+                            {{left: '$$', right: '$$', display: true}},
+                            {{left: '$', right: '$', display: false}}
+                        ]
+                    }});"></script>
+            <style>
+                * {{ box-sizing: border-box !important; }}
+                body {{ margin: 0; padding: 6px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #222; }}
+                canvas {{ max-width: 100% !important; height: auto !important; display: block; }}
+                div, fieldset, form {{ max-width: 100% !important; }}
+                .controls, div[class*="control"], div[style*="flex"] {{
+                    display: flex !important;
+                    flex-wrap: wrap !important;
+                    gap: 8px !important;
+                    width: 100% !important;
+                }}
+                input[type="range"] {{ max-width: 140px; }}
+                button, select, input {{ margin: 2px 0; }}
+            </style>
+        </head>
+        <body>
+            {raw_html}
+            <script>
+                // DOM 변경 시에도 수식을 지속적으로 렌더링
+                document.addEventListener("DOMContentLoaded", function() {{
+                    if (window.renderMathInElement) {{
+                        renderMathInElement(document.body, {{
+                            delimiters: [
+                                {{left: '$$', right: '$$', display: true}},
+                                {{left: '$', right: '$', display: false}}
+                            ]
+                        }});
+                    }}
+                }});
+            </script>
+        </body>
+        </html>
+        """
+        
+        col1, col2 = st.columns([2, 3])
+        with col1:
+            st.download_button(
+                label="🖥️ 시뮬레이터 전체화면 다운로드 (.html)",
+                data=raw_html,
+                file_name=f"physics_simulation_{idx+1}.html",
+                mime="text/html",
+                key=f"sim_down_{idx}_{len(raw_html)}"
+            )
+        with col2:
+            st.caption("다운로드한 파일을 브라우저로 열면 모니터 전체 크기로 실행됩니다.")
+
+        components.html(responsive_wrapper, height=620, scrolling=True)
+
 # 클립보드 복사 컴포넌트
 def copy_button_widget(text_to_copy, button_label="📋 복사"):
     clean_json = json.dumps(text_to_copy)
