@@ -10,62 +10,41 @@ import matplotlib.pyplot as plt
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정 (사이드바 항상 펼침 고정)
+# 1. 페이지 기본 설정
 st.set_page_config(
     page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
     layout="centered",
-    initial_sidebar_state="expanded"  # 사이드바 기본 오픈 상태 유지
+    initial_sidebar_state="expanded"
 )
 
-# 2. 하단 배지/푸터 완전 박멸 및 사이드바 토글 살리기 CSS
+# 2. UI 스타일 최적화 CSS
 st.markdown("""
 <style>
-/* 1) 상단 메인 타이틀 크기 축소 */
-h1#과학고-물리-ai-튜터, .stTitle, h1 {
-    font-size: 1.55rem !important;
-    font-weight: 700 !important;
-    margin-bottom: 0.2rem !important;
-}
+/* 메인 타이틀 크기 조정 */
+h1 { font-size: 1.5rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
 
-/* 2) 답변 본문 소제목 크기 조정 */
+/* 단계별 소제목 크기 조정 */
 .stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
 .stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 3) 상단 불필요한 버튼만 제거 (사이드바 여는 버튼은 유지) */
-#MainMenu { visibility: hidden !important; display: none !important; }
-.stDeployButton { display: none !important; visibility: hidden !important; }
-.stAppDeployButton { display: none !important; visibility: hidden !important; }
-div[data-testid="stDecoration"] { display: none !important; }
-div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
+/* 불필요한 배포 버튼 및 내부 푸터 숨김 */
+.stDeployButton, .stAppDeployButton { display: none !important; }
+footer { display: none !important; visibility: hidden !important; }
+div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
 
-/* 4) 'Built with Streamlit' 및 하단 모든 푸터/워터마크 완전 제거 */
-footer { visibility: hidden !important; display: none !important; height: 0px !important; }
-footer * { visibility: hidden !important; display: none !important; }
-div[data-testid="stFooter"] { visibility: hidden !important; display: none !important; height: 0px !important; }
-div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
-div[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="ProfileBadge"] { display: none !important; visibility: hidden !important; }
-.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
-a[href*="streamlit.io"] { display: none !important; visibility: hidden !important; }
-iframe[title*="streamlit"] { display: none !important; }
-div[data-testid="stBottomBlockContainer"] > div:has(a[href*="streamlit.io"]) { display: none !important; }
-
-/* 5) 대기 시간 동적 애니메이션 */
+/* 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
     100% { transform: scale(1); opacity: 0.8; }
 }
-
 @keyframes spinSlow {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
-
 .thinking-box {
     display: flex;
     align-items: center;
@@ -75,28 +54,13 @@ div[data-testid="stBottomBlockContainer"] > div:has(a[href*="streamlit.io"]) { d
     border-radius: 10px;
     margin-bottom: 12px;
 }
-
-.tutor-active-icon {
-    font-size: 24px;
-    display: inline-block;
-    animation: tutorPulse 1.4s infinite ease-in-out;
-}
-
-.tutor-atom-icon {
-    font-size: 22px;
-    display: inline-block;
-    animation: spinSlow 3s linear infinite;
-}
-
-.thinking-text {
-    color: #4A90E2;
-    font-weight: 600;
-    font-size: 0.95rem;
-}
+.tutor-active-icon { font-size: 24px; display: inline-block; animation: tutorPulse 1.4s infinite ease-in-out; }
+.tutor-atom-icon { font-size: 22px; display: inline-block; animation: spinSlow 3s linear infinite; }
+.thinking-text { color: #4A90E2; font-weight: 600; font-size: 0.95rem; }
 </style>
 """, unsafe_allow_html=True)
 
-# 클립보드 복사 버튼 컴포넌트
+# 클립보드 복사 컴포넌트
 def copy_button_widget(text_to_copy, button_label="📋 복사"):
     clean_json = json.dumps(text_to_copy)
     html_code = f"""
@@ -135,9 +99,6 @@ def copy_button_widget(text_to_copy, button_label="📋 복사"):
     """
     components.html(html_code, height=38)
 
-st.title("⚛️ BTMPhysics AI Tutor")
-st.caption("선생님의 강의 영상과 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
-
 # 3. API 키 설정
 api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if not api_key:
@@ -146,7 +107,7 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 저장소 내 모든 강의록 파일 자동 탐색 및 병합
+# 4. 저장소 내 모든 강의록 탐색 및 로드
 def load_all_lecture_notes():
     combined_notes = ""
     all_files = glob.glob("lecture_*.md") + glob.glob("data/*.md") + glob.glob("*.md")
@@ -171,16 +132,13 @@ def load_all_lecture_notes():
 
 lecture_knowledge, loaded_file_list = load_all_lecture_notes()
 
-# 5. 엄격한 영상 강의록 기반 시스템 지침
+# 5. 유연하고 깊이 있는 물리 AI 튜터 지침
 PHYSICS_INSTRUCTION = f"""
-당신은 물리 교사의 강의록 지식을 완벽히 계승한 전용 AI 분신 튜터입니다.
+당신은 과학고등학교 물리 교사의 강의 지식과 교육 철학을 계승한 전용 AI 튜터입니다.
 
 [지식 활용 가이드]
 1. 학생의 질문이 아래 [선생님 전용 강의록]에 포함된 내용이라면, 반드시 강의록의 판서 유도 순서, 핵심 직관, 오개념 주의사항을 최우선 기준으로 삼아 지도하세요.
 2. 강의록에 없는 다른 단원이나 심화 물리 질문이라도 일반물리학/고급물리 지식을 총동원하여 친절하고 깊이 있게 지도하세요.
-
-[범위 외 질문 시 표준 거절 문구]
-"해당 내용은 아직 선생님의 강의 영상에서 학습되지 않았습니다. 현재 학습 완료된 단원과 관련된 질문을 남겨주시면, 선생님의 판서와 설명 방식 그대로 자세히 안내해 드릴게요!"
 
 [선생님 전용 강의록 (누적 데이터)]
 {lecture_knowledge}
@@ -192,10 +150,87 @@ PHYSICS_INSTRUCTION = f"""
 
 [수식 및 발문 원칙]
 1. 문장 속 인라인 수식($...$), 독립 블록 수식($$...$$) 규칙을 철저히 지키세요.
-2. 학생에게 정답을 바로 주지 말고, 강의록의 판서 단계를 바탕으로 소크라테스식 힌트를 단계별로 제공하세요.
+2. 학생에게 정답을 바로 주지 말고, 과학적 발상과 판서 단계를 바탕으로 소크라테스식 힌트를 단계별로 제공하세요.
 """
 
-# 6. 복합 콘텐츠 렌더링 함수
+# 6. 메인 타이틀 및 상단 컨트롤 대시보드
+st.title("⚛️ 과학고 물리 AI 튜터")
+st.caption("선생님의 강의 영상과 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# 메인 화면 상단 접이식 관리 패널
+with st.expander("🛠️ 탑재된 강의 단원 확인 및 나의 학습 관리 열기", expanded=False):
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**📂 현재 학습 완료된 단원 목록**")
+        if loaded_file_list:
+            for f_name in loaded_file_list:
+                st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
+        else:
+            st.info("등록된 강의록 파일이 없습니다.")
+            
+    with col2:
+        st.markdown("**📚 학습 기록 관리**")
+        if len(st.session_state.messages) > 0:
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+            export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
+            for msg in st.session_state.messages:
+                role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
+                export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
+            
+            file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+            st.download_button(
+                label="📥 오늘 학습 기록 다운로드 (.md)",
+                data=export_text,
+                file_name=f"물리학습기록_{file_date}.md",
+                mime="text/markdown",
+                key="main_download_btn",
+                use_container_width=True
+            )
+            if st.button("🗑️ 대화 기록 초기화", key="main_reset_btn", use_container_width=True):
+                st.session_state.messages = []
+                st.rerun()
+        else:
+            st.caption("대화가 시작되면 학습 기록 다운로드 버튼이 활성화됩니다.")
+
+st.markdown("---")
+
+# 7. 좌측 사이드바
+with st.sidebar:
+    st.header("📂 탑재된 강의 단원")
+    if loaded_file_list:
+        for f_name in loaded_file_list:
+            st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
+    else:
+        st.info("등록된 강의록 파일이 없습니다.")
+
+    st.markdown("---")
+    st.header("📚 나의 학습 관리")
+    if len(st.session_state.messages) > 0:
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
+        for msg in st.session_state.messages:
+            role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
+            export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
+        
+        file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        st.download_button(
+            label="📥 오늘 학습 기록 다운로드 (.md)",
+            data=export_text,
+            file_name=f"물리학습기록_{file_date}.md",
+            mime="text/markdown",
+            key="sidebar_download_btn",
+            use_container_width=True
+        )
+        if st.button("🗑️ 대화 기록 초기화", key="sidebar_reset_btn", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+    else:
+        st.caption("대화가 시작되면 다운로드 버튼이 활성화됩니다.")
+
+# 8. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -216,7 +251,6 @@ def render_assistant_content(content):
 
     for idx, html_code in enumerate(html_blocks):
         raw_html = html_code.strip()
-        
         responsive_wrapper = f"""
         <style>
             * {{ box-sizing: border-box !important; }}
@@ -234,25 +268,21 @@ def render_assistant_content(content):
         </style>
         {raw_html}
         """
-        
         col1, col2 = st.columns([2, 3])
         with col1:
             st.download_button(
-                label="🖥️ 시뮬레이터 전체화면 파일 다운로드 (.html)",
+                label="🖥️ 시뮬레이터 전체화면 다운로드 (.html)",
                 data=raw_html,
                 file_name=f"physics_simulation_{idx+1}.html",
                 mime="text/html",
                 key=f"sim_down_{idx}_{len(raw_html)}"
             )
         with col2:
-            st.caption("다운로드한 html 파일을 브라우저로 열면 모니터 전체 크기로 실행됩니다.")
+            st.caption("다운로드한 파일을 브라우저로 열면 모니터 전체 크기로 실행됩니다.")
 
         components.html(responsive_wrapper, height=620, scrolling=True)
 
-# 7. 이전 대화 화면 렌더링 (복사 버튼 포함)
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
+# 9. 이전 대화 화면 렌더링
 AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
@@ -266,7 +296,7 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 8. 학생 질문 처리 (503 / 429 자동 재시도 포함)
+# 10. 학생 질문 처리 (gemini-3.6-flash 적용 및 재시도 로직)
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
@@ -289,7 +319,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
 
     with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
-        
         response_placeholder.markdown("""
         <div class="thinking-box">
             <span class="tutor-active-icon">👨‍🏫</span>
@@ -331,38 +360,3 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                     response_placeholder.markdown(error_msg)
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     break
-
-# 9. 좌측 사이드바: 탑재된 강의 단원 및 나의 학습 관리
-with st.sidebar:
-    st.header("📂 탑재된 강의 단원")
-    if loaded_file_list:
-        for f_name in loaded_file_list:
-            st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
-    else:
-        st.warning("아직 탑재된 강의록 파일이 없습니다.")
-
-    st.markdown("---")
-    st.header("📚 나의 학습 관리")
-    
-    if len(st.session_state.messages) > 0:
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
-        
-        for msg in st.session_state.messages:
-            role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
-            export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
-        
-        file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-        st.download_button(
-            label="📥 오늘 학습 기록 다운로드 (.md)",
-            data=export_text,
-            file_name=f"물리학습기록_{file_date}.md",
-            mime="text/markdown",
-            use_container_width=True
-        )
-        
-        if st.button("🗑️ 대화 기록 초기화", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
-    else:
-        st.info("질문을 입력하면 여기에 학습 기록 다운로드 버튼이 활성화됩니다.")
