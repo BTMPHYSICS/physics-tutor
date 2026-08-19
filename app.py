@@ -226,7 +226,7 @@ st.markdown("---")
 
 # 9. 좌측 사이드바: 나의 학습 관리 대시보드
 with st.sidebar:
-    st.header("📚 나의 학습 관리")
+    st.header("📚 오늘의 학습 관리")
     st.metric(label="총 학습 점수", value=f"{learning_score}점", delta=f"{grade_label}" if q_count > 0 else None)
     
     st.write(f"**참여도** (질문 {q_count}회)")
@@ -262,6 +262,7 @@ with st.sidebar:
             st.rerun()
     else:
         st.caption("질문을 남기면 참여도와 학습 점수가 실시간으로 반영됩니다.")
+        st.caption("앱을 끝내면 기록이 사라지므로 꼭 다운로드 합시다..")
 
 # 10. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
