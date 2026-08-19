@@ -18,8 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-
-
 # 2. UI 스타일 최적화 CSS (사이드바 토글 버튼 유지 및 상단 UI 정리)
 st.markdown("""
 <style>
