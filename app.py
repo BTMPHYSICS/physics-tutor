@@ -179,7 +179,7 @@ def render_assistant_content(content):
 
     for html_code in html_blocks:
         components.html(html_code.strip(), height=420, scrolling=True)
-
+        
 # 7. 이전 대화 화면 렌더링
 if "messages" not in st.session_state:
     st.session_state.messages = []
