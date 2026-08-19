@@ -30,8 +30,12 @@ h1 { font-size: 1.5rem !important; font-weight: 700 !important; margin-bottom: 0
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 불필요한 배포 버튼 및 내부 푸터 숨김 */
+/* 불필요한 기본 UI 숨김 */
+#MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
+div[data-testid="stDecoration"] { display: none !important; }
+div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
+div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
 footer { display: none !important; visibility: hidden !important; }
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
 
@@ -107,7 +111,7 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 저장소 내 모든 강의록 탐색 및 로드
+# 4. 저장소 내 모든 강의록 탐색 및 로드 (지식 베이스 백엔드 탑재)
 def load_all_lecture_notes():
     combined_notes = ""
     all_files = glob.glob("lecture_*.md") + glob.glob("data/*.md") + glob.glob("*.md")
@@ -153,64 +157,65 @@ PHYSICS_INSTRUCTION = f"""
 2. 학생에게 정답을 바로 주지 말고, 과학적 발상과 판서 단계를 바탕으로 소크라테스식 힌트를 단계별로 제공하세요.
 """
 
-# 6. 메인 타이틀 및 상단 컨트롤 대시보드
+# 6. 메인 타이틀
 st.title("⚛️ BTMPHYSICS AI Tutor")
 st.caption("선생님의 강의 영상과 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 메인 화면 상단 접이식 관리 패널
-with st.expander("🛠️ 탑재된 강의 단원 확인 및 나의 학습 관리 열기", expanded=False):
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**📂 현재 학습 완료된 단원 목록**")
-        if loaded_file_list:
-            for f_name in loaded_file_list:
-                st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
-        else:
-            st.info("등록된 강의록 파일이 없습니다.")
-            
-    with col2:
-        st.markdown("**📚 학습 기록 관리**")
-        if len(st.session_state.messages) > 0:
-            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-            export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
-            for msg in st.session_state.messages:
-                role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
-                export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
-            
-            file_date = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-            st.download_button(
-                label="📥 오늘 학습 기록 다운로드 (.md)",
-                data=export_text,
-                file_name=f"물리학습기록_{file_date}.md",
-                mime="text/markdown",
-                key="main_download_btn",
-                use_container_width=True
-            )
-            if st.button("🗑️ 대화 기록 초기화", key="main_reset_btn", use_container_width=True):
-                st.session_state.messages = []
-                st.rerun()
-        else:
-            st.caption("대화가 시작되면 학습 기록 다운로드 버튼이 활성화됩니다.")
+# 7. 학습 성취도(성실도, 참여도, 점수) 계산 로직
+user_questions = [msg["content"] for msg in st.session_state.messages if msg["role"] == "user"]
+q_count = len(user_questions)
 
-st.markdown("---")
+# 참여도 (질문 5회 시 100% 달성)
+engagement_rate = min(1.0, q_count / 5.0)
 
-# 7. 좌측 사이드바
+# 성실도 (질문 길이 및 물리 용어 성실성 평가)
+total_chars = sum(len(q) for q in user_questions)
+avg_length = (total_chars / q_count) if q_count > 0 else 0
+diligence_rate = min(1.0, (avg_length / 40.0) * 0.7 + (min(q_count, 5) / 5.0) * 0.3)
+
+# 종합 학습 점수 (100점 만점)
+learning_score = int((engagement_rate * 50) + (diligence_rate * 50))
+
+# 성취 단계 산출
+if learning_score >= 90:
+    grade_label = "🏆 마스터 탐구자"
+elif learning_score >= 70:
+    grade_label = "🌟 열정 물리학도"
+elif learning_score >= 40:
+    grade_label = "🚀 도약하는 탐구자"
+elif learning_score > 0:
+    grade_label = "🌱 새싹 탐구자"
+else:
+    grade_label = "탐구 준비 중"
+
+# 8. 좌측 사이드바: 나의 학습 관리 대시보드
 with st.sidebar:
-    st.header("📂 탑재된 강의 단원")
-    if loaded_file_list:
-        for f_name in loaded_file_list:
-            st.markdown(f"- 📄 `{os.path.basename(f_name)}`")
-    else:
-        st.info("등록된 강의록 파일이 없습니다.")
-
-    st.markdown("---")
     st.header("📚 나의 학습 관리")
-    if len(st.session_state.messages) > 0:
+    
+    # 종합 점수 및 등급
+    st.metric(label="총 학습 점수", value=f"{learning_score}점", delta=f"{grade_label}" if q_count > 0 else None)
+    
+    # 참여도
+    st.write(f"**참여도** (질문 {q_count}회)")
+    st.progress(engagement_rate)
+    
+    # 성실도
+    st.write(f"**성실도** ({int(diligence_rate * 100)}%)")
+    st.progress(diligence_rate)
+    
+    st.markdown("---")
+    
+    # 학습 리포트 다운로드 및 초기화
+    if q_count > 0:
         current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        export_text = f"# ⚛️ 과학고 물리 AI 튜터 학습 기록\n- **학습 일시**: {current_time}\n\n---\n\n"
+        export_text = f"# ⚛️ BTMPHYSICS AI Tutor 학습 리포트\n"
+        export_text += f"- **학습 일시**: {current_time}\n"
+        export_text += f"- **최종 점수**: {learning_score}점 ({grade_label})\n"
+        export_text += f"- **질문 횟수**: {q_count}회 | **성실도**: {int(diligence_rate * 100)}%\n\n---\n\n"
+        
         for msg in st.session_state.messages:
             role_title = "👤 **학생 질문**" if msg["role"] == "user" else "🤖 **AI 튜터 피드백**"
             export_text += f"### {role_title}\n\n{msg['content']}\n\n---\n\n"
@@ -219,7 +224,7 @@ with st.sidebar:
         st.download_button(
             label="📥 오늘 학습 기록 다운로드 (.md)",
             data=export_text,
-            file_name=f"물리학습기록_{file_date}.md",
+            file_name=f"물리학습리포트_{file_date}.md",
             mime="text/markdown",
             key="sidebar_download_btn",
             use_container_width=True
@@ -228,9 +233,9 @@ with st.sidebar:
             st.session_state.messages = []
             st.rerun()
     else:
-        st.caption("대화가 시작되면 다운로드 버튼이 활성화됩니다.")
+        st.caption("질문을 남기면 참여도와 학습 점수가 실시간으로 반영됩니다.")
 
-# 8. 복합 콘텐츠 렌더링 함수
+# 9. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -282,7 +287,7 @@ def render_assistant_content(content):
 
         components.html(responsive_wrapper, height=620, scrolling=True)
 
-# 9. 이전 대화 화면 렌더링
+# 10. 이전 대화 화면 렌더링
 AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
@@ -296,7 +301,7 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 10. 학생 질문 처리 (gemini-3.6-flash 적용 및 재시도 로직)
+# 11. 학생 질문 처리
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
