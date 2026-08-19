@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정
+# 1. 페이지 기본 설정 (사이드바 기본 열림)
 st.set_page_config(
     page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 모바일 호환 및 왕관 배지/하단 푸터 완벽 차단 CSS
+# 2. UI 스타일 최적화 CSS (모바일 충돌 없이 단정하게 유지)
 st.markdown("""
 <style>
 /* 1) 메인 타이틀 크기 조정 */
@@ -30,31 +30,22 @@ h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 
 .stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
 
-/* 3) 상단 불필요 버튼 숨김 */
+/* 3) 상/하단 불필요한 기본 UI 숨김 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
 div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
 div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
-
-/* 4) 하단 푸터, 왕관(👑) 배지, Streamlit 워터마크 완전 차단 */
 footer { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
 div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
-div[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="ProfileBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="stCommunityBadge"] { display: none !important; visibility: hidden !important; }
-div[class*="crown"] { display: none !important; visibility: hidden !important; }
-.viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
-a[href*="streamlit.io"] { display: none !important; visibility: hidden !important; }
-div[data-testid="stBottomBlockContainer"] > div:has(a[href*="streamlit.io"]) { display: none !important; }
 
-/* 5) 모바일 입력창 안정화 */
+/* 4) 모바일 입력창 안정화 */
 .stChatInputContainer {
     padding-bottom: 8px !important;
 }
 
-/* 6) 대기 시간 애니메이션 */
+/* 5) 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
@@ -338,7 +329,7 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 10. 학생 질문 처리 (gemini-3.6-flash 적용 및 재시도 로직)
+# 10. 학생 질문 처리 (gemini-3.6-flash 및 안정적 재시도)
 if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=AVATAR_USER):
