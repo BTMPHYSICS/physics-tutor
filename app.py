@@ -12,7 +12,7 @@ from google.genai import types
 
 # 1. 페이지 기본 설정
 st.set_page_config(
-    page_title="과학고 물리 AI 튜터",
+    page_title="BTMPHYSICS AI Tutor",
     page_icon="⚛️",
     layout="centered",
     initial_sidebar_state="expanded"
@@ -154,7 +154,7 @@ PHYSICS_INSTRUCTION = f"""
 """
 
 # 6. 메인 타이틀 및 상단 컨트롤 대시보드
-st.title("⚛️ 과학고 물리 AI 튜터")
+st.title("⚛️ BTMPHYSICS AI Tutor")
 st.caption("선생님의 강의 영상과 교재 내용을 기반으로 심화 물리 탐구를 돕습니다.")
 
 if "messages" not in st.session_state:
@@ -323,7 +323,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         <div class="thinking-box">
             <span class="tutor-active-icon">👨‍🏫</span>
             <span class="tutor-atom-icon">⚛️</span>
-            <span class="thinking-text">선생님이 유도 과정과 시뮬레이션을 준비하고 있습니다...</span>
+            <span class="thinking-text">답변 준비중입니다....</span>
         </div>
         """, unsafe_allow_html=True)
         
