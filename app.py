@@ -158,7 +158,7 @@ PHYSICS_INSTRUCTION = f"""
 2. 학생에게 정답을 바로 주지 말고, 강의록의 판서 단계를 바탕으로 소크라테스식 힌트를 단계별로 제공하세요.
 """
 
-# 6. 복합 콘텐츠 렌더링 함수
+# 6. 복합 콘텐츠 렌더링 함수 (높이 자동 조절 + 전체화면 지원)
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
     py_blocks = re.findall(r"```python(.*?)```", content, re.DOTALL)
@@ -178,7 +178,55 @@ def render_assistant_content(content):
             pass
 
     for html_code in html_blocks:
-        components.html(html_code.strip(), height=420, scrolling=True)
+        raw_html = html_code.strip()
+        clean_json_html = json.dumps(raw_html)
+        
+        # 내부 콘텐츠 길이에 맞춰 Streamlit iframe 높이를 실시간 동적 조절하는 래퍼
+        wrapper_html = f"""
+        <div id="sim-root" style="font-family: sans-serif;">
+            <div style="margin-bottom: 8px;">
+                <button onclick='openFullScreen()' style="
+                    background-color: #2E7D32;
+                    color: white;
+                    border: none;
+                    padding: 6px 14px;
+                    font-size: 13px;
+                    font-weight: bold;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+                ">🔍 시뮬레이터 전체화면(새 탭) 열기</button>
+            </div>
+            <div id="sim-content" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 6px; background: #fff;">
+                {raw_html}
+            </div>
+        </div>
+        <script>
+        function openFullScreen() {{
+            const content = {clean_json_html};
+            const win = window.open('', '_blank');
+            win.document.open();
+            win.document.write(content);
+            win.document.close();
+        }}
+
+        // 콘텐츠 크기 변화를 감지하여 iframe 높이를 동적으로 부모 창에 맞춤
+        function autoResize() {{
+            const root = document.getElementById('sim-root');
+            if (root && window.frameElement) {{
+                const targetHeight = root.scrollHeight + 15;
+                window.frameElement.style.height = targetHeight + 'px';
+            }}
+        }}
+
+        window.addEventListener('load', autoResize);
+        const resizeObserver = new ResizeObserver(autoResize);
+        resizeObserver.observe(document.getElementById('sim-root'));
+        </script>
+        """
+        # 기본 초기값 450으로 띄운 후 JS에 의해 실제 높이로 즉각 확장됨
+        components.html(wrapper_html, height=450, scrolling=False)
+        
         
 # 7. 이전 대화 화면 렌더링
 if "messages" not in st.session_state:
