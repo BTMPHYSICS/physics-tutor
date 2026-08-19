@@ -18,67 +18,34 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. UI 스타일 최적화 CSS (왕관 배지/플로팅 위젯 영구 차단)
+
+
+# 2. UI 스타일 최적화 CSS (사이드바 토글 버튼 유지 및 상단 UI 정리)
 st.markdown("""
 <style>
-/* 1) 메인 타이틀 크기 조정 */
+/* 메인 타이틀 크기 조정 */
 h1 { font-size: 1.5rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
-
-/* 2) 단계별 소제목 크기 조정 */
+/* 단계별 소제목 크기 조정 */
 .stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
 .stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
-
-/* 3) 상단 불필요한 기본 UI 숨김 (사이드바 토글 화살표는 유지) */
+/* 불필요한 기본 UI만 숨김 (사이드바 토글 화살표 버튼은 유지) */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
-div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
-
-/* 4) 하단 푸터 완전 제거 */
-footer { display: none !important; visibility: hidden !important; height: 0px !important; }
-div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; height: 0px !important; }
-div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
-
-/* 5) PC 및 모바일 전용 왕관 배지, 원형 아이콘, Manage App 플로팅 위젯 완전 영구 삭제 */
-div[data-testid="stStatusWidget"],
-[data-testid="manage-app-button"],
-div[class*="viewerBadge"],
-div[class*="ProfileBadge"],
-div[class*="stCommunityBadge"],
-div[class*="manageApp"],
-div[class*="FloatingElement"],
-div[class*="floating"],
-.viewerBadge_container__1QSob,
-div[data-testid="stBottomBlockContainer"] div[class*="floating"],
-div:has(> [data-testid="manage-app-button"]),
-div:has(> button[aria-label*="Manage"]),
-div[style*="z-index: 999999"],
-div[style*="z-index: 1000000"] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0px !important;
-    height: 0px !important;
-    pointer-events: none !important;
-}
-/* 6) 모바일 입력창 안정화 */
-.stChatInputContainer {
-    padding-bottom: 10px !important;
-}
-
-/* 7) 대기 시간 애니메이션 */
+div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
+footer { display: none !important; visibility: hidden !important; }
+div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
+/* 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
     100% { transform: scale(1); opacity: 0.8; }
-}
-@keyframes spinSlow {
+}@keyframes spinSlow {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-}
-.thinking-box {
+}.thinking-box {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -86,8 +53,7 @@ div[style*="z-index: 1000000"] {
     background-color: rgba(74, 144, 226, 0.08);
     border-radius: 10px;
     margin-bottom: 12px;
-}
-.tutor-active-icon { font-size: 24px; display: inline-block; animation: tutorPulse 1.4s infinite ease-in-out; }
+}.tutor-active-icon { font-size: 24px; display: inline-block; animation: tutorPulse 1.4s infinite ease-in-out; }
 .tutor-atom-icon { font-size: 22px; display: inline-block; animation: spinSlow 3s linear infinite; }
 .thinking-text { color: #4A90E2; font-weight: 600; font-size: 0.95rem; }
 </style>
