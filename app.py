@@ -18,33 +18,34 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. UI 스타일 최적화 CSS 및 Fullscreen/호스트 배지 완전 비활성화
+# 2. 모바일/데스크톱 호환 반응형 CSS (자바스크립트 충돌 제거)
 st.markdown("""
 <style>
-/* 메인 타이틀 크기 조정 */
-h1 { font-size: 1.5rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
+/* 1) 메인 타이틀 크기 조정 */
+h1 { font-size: 1.45rem !important; font-weight: 700 !important; margin-bottom: 0.2rem !important; }
 
-/* 단계별 소제목 크기 조정 */
-.stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
-.stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
-.stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
-.stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
+/* 2) 답변 본문 소제목 크기 조정 */
+.stMarkdown h1 { font-size: 1.15rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
+.stMarkdown h2 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
+.stMarkdown h3 { font-size: 0.98rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
+.stMarkdown h4 { font-size: 0.92rem !important; font-weight: 600 !important; }
 
-/* 상단 불필요 버튼 숨김 */
+/* 3) 상/하단 불필요한 기본 UI 숨김 */
 #MainMenu { visibility: hidden !important; display: none !important; }
 .stDeployButton, .stAppDeployButton { display: none !important; }
 div[data-testid="stDecoration"] { display: none !important; }
 div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
 div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
-
-/* 하단 푸터, 워터마크, Fullscreen 버튼 완전 차단 */
 footer { display: none !important; visibility: hidden !important; }
 div[data-testid="stFooter"] { display: none !important; visibility: hidden !important; }
 div[data-testid="stBottom"] footer { display: none !important; visibility: hidden !important; }
-button[title*="fullscreen" i], button[aria-label*="fullscreen" i] { display: none !important; pointer-events: none !important; }
-[data-testid="StyledFullScreenButton"] { display: none !important; pointer-events: none !important; }
 
-/* 대기 시간 애니메이션 */
+/* 4) 모바일 입력창(chat_input) 레이아웃 안정화 */
+.stChatInputContainer {
+    padding-bottom: 8px !important;
+}
+
+/* 5) 대기 시간 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
@@ -69,42 +70,6 @@ button[title*="fullscreen" i], button[aria-label*="fullscreen" i] { display: non
 </style>
 """, unsafe_allow_html=True)
 
-# 하단 Built with Streamlit 및 Fullscreen 버튼 실시간 추적 강제 삭제 스크립트
-components.html("""
-<script>
-function removeHostControls() {
-    try {
-        const docs = [document, window.parent.document, window.top.document];
-        docs.forEach(doc => {
-            if (!doc) return;
-            // 1. Fullscreen 버튼 및 뷰어 배지 탐색
-            const targets = doc.querySelectorAll(`
-                footer,
-                [data-testid="stFooter"],
-                [class*="viewerBadge"],
-                [class*="ProfileBadge"],
-                .viewerBadge_container__1QSob,
-                a[href*="streamlit.io"],
-                button[title*="fullscreen" i],
-                button[aria-label*="fullscreen" i],
-                [data-testid="StyledFullScreenButton"],
-                div[class*="fullscreen"]
-            `);
-            targets.forEach(el => {
-                el.style.display = 'none';
-                el.style.visibility = 'hidden';
-                el.style.pointerEvents = 'none';
-                el.remove();
-            });
-        });
-    } catch (e) {
-        // 교차 출처 제약 발생 시 무시
-    }
-}
-setInterval(removeHostControls, 300);
-</script>
-""", height=0, width=0)
-
 # 클립보드 복사 컴포넌트
 def copy_button_widget(text_to_copy, button_label="📋 복사"):
     clean_json = json.dumps(text_to_copy)
@@ -125,20 +90,43 @@ def copy_button_widget(text_to_copy, button_label="📋 복사"):
     <script>
     function copyText() {{
         const text = {clean_json};
-        navigator.clipboard.writeText(text).then(function() {{
-            const btn = document.getElementById('copy-btn');
-            const originalText = btn.innerText;
-            btn.innerText = '✅ 복사 완료!';
-            btn.style.backgroundColor = '#d1e7dd';
-            btn.style.color = '#0f5132';
-            setTimeout(() => {{
-                btn.innerText = originalText;
-                btn.style.backgroundColor = '#f0f2f6';
-                btn.style.color = '#333';
-            }}, 2000);
-        }}).catch(function(err) {{
-            console.error('복사 실패: ', err);
-        }});
+        if (navigator.clipboard && window.isSecureContext) {{
+            navigator.clipboard.writeText(text).then(function() {{
+                showSuccess();
+            }}).catch(function(err) {{
+                fallbackCopy(text);
+            }});
+        }} else {{
+            fallbackCopy(text);
+        }}
+    }}
+    function fallbackCopy(text) {{
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {{
+            document.execCommand('copy');
+            showSuccess();
+        }} catch (err) {{
+            console.error('복사 실패', err);
+        }}
+        document.body.removeChild(textArea);
+    }}
+    function showSuccess() {{
+        const btn = document.getElementById('copy-btn');
+        const originalText = btn.innerText;
+        btn.innerText = '✅ 복사 완료!';
+        btn.style.backgroundColor = '#d1e7dd';
+        btn.style.color = '#0f5132';
+        setTimeout(() => {{
+            btn.innerText = originalText;
+            btn.style.backgroundColor = '#f0f2f6';
+            btn.style.color = '#333';
+        }}, 2000);
     }}
     </script>
     """
