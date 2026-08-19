@@ -17,37 +17,42 @@ st.set_page_config(
     layout="centered"
 )
 
-# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 Streamlit 기본 UI 숨김 CSS 주입
+# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 상/하단 모든 기본 UI 숨김
 st.markdown("""
 <style>
-/* 1) 상단 메인 타이틀 크기 축소 및 여백 조정 */
+/* 상단 메인 타이틀 크기 축소 및 여백 조정 */
 h1#과학고-물리-ai-튜터, .stTitle, h1 {
-    font-size: 1.6rem !important;
+    font-size: 1.55rem !important;
     font-weight: 700 !important;
     margin-bottom: 0.2rem !important;
 }
 
-/* 2) 답변 본문 내 단계별 소제목 크기 단정하게 축소 */
-.stMarkdown h1 { font-size: 1.25rem !important; font-weight: 700 !important; margin-top: 12px !important; margin-bottom: 6px !important; }
-.stMarkdown h2 { font-size: 1.15rem !important; font-weight: 600 !important; margin-top: 10px !important; margin-bottom: 5px !important; }
-.stMarkdown h3 { font-size: 1.05rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
+/* 답변 본문 내 단계별 소제목 크기 축소 */
+.stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
+.stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
+.stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 3) Streamlit 기본 상/하단 메뉴 및 워터마크 숨김 */
-#MainMenu {visibility: hidden !important;}
-header {visibility: hidden !important;}
-footer {visibility: hidden !important;}
+/* 상단 햄버거 메뉴, Deploy 버튼, 헤더 완전 제거 */
+#MainMenu {visibility: hidden !important; display: none !important;}
+header {visibility: hidden !important; display: none !important;}
 .stDeployButton {display: none !important;}
 div[data-testid="stDecoration"] {display: none !important;}
 div[data-testid="stStatusWidget"] {visibility: hidden !important;}
 
-/* 상단 불필요한 빈 여백 제거 */
+/* 하단 푸터 및 Streamlit 워터마크 완전 제거 */
+footer {visibility: hidden !important; display: none !important;}
+footer:after {content: "" !important; display: none !important;}
+div[class*="viewerBadge"] {display: none !important;}
+.viewerBadge_container__1QSob {display: none !important;}
+
+/* 상단/하단 불필요한 빈 여백 제거 */
 .block-container {
-    padding-top: 2rem !important;
-    padding-bottom: 3rem !important;
+    padding-top: 1.8rem !important;
+    padding-bottom: 1.5rem !important;
 }
 
-/* 4) 대기 시간 동적 애니메이션 */
+/* 대기 시간 동적 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
