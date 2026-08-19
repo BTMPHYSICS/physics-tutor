@@ -111,10 +111,10 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 4. 저장소 내 모든 강의록 파일 자동 검색 및 병합
+# 4. 저장소 내 모든 강의록 파일 자동 탐색 및 병합
 def load_all_lecture_notes():
     combined_notes = ""
-    # 루트 폴더 및 data 폴더 내의 모든 lecture_*.md 및 .md 파일 탐색
+    # 루트 폴더 및 data 폴더 내의 모든 마크다운 파일 탐색
     all_files = glob.glob("lecture_*.md") + glob.glob("data/*.md") + glob.glob("*.md")
     loaded_files = set()
 
@@ -267,7 +267,7 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
                     break
 
-# 9. 좌측 사이드바: 탑재된 강의록 목록 및 학습 기록 관리
+# 9. 좌측 사이드바: 탑재된 강의 단원 목록 및 학습 기록 관리
 with st.sidebar:
     st.header("📂 탑재된 강의 단원")
     if loaded_file_list:
