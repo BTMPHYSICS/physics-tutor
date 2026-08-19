@@ -10,40 +10,39 @@ import matplotlib.pyplot as plt
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정
+# 1. 페이지 기본 설정 (사이드바 항상 펼침 고정)
 st.set_page_config(
-    page_title="BTMPhysics AI Tutor",
+    page_title="과학고 물리 AI 튜터",
     page_icon="⚛️",
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="expanded"  # 사이드바 기본 오픈 상태 유지
 )
 
-# 2. 동적 애니메이션, 제목/타이틀 크기 최적화 및 배포 환경 상/하단 모든 UI 완전 숨김 CSS
+# 2. 하단 배지/푸터 완전 박멸 및 사이드바 토글 살리기 CSS
 st.markdown("""
 <style>
-/* 1) 상단 메인 타이틀 크기 축소 및 여백 조정 */
+/* 1) 상단 메인 타이틀 크기 축소 */
 h1#과학고-물리-ai-튜터, .stTitle, h1 {
     font-size: 1.55rem !important;
     font-weight: 700 !important;
     margin-bottom: 0.2rem !important;
 }
 
-/* 2) 답변 본문 내 단계별 소제목 크기 단정하게 축소 */
+/* 2) 답변 본문 소제목 크기 조정 */
 .stMarkdown h1 { font-size: 1.2rem !important; font-weight: 700 !important; margin-top: 10px !important; margin-bottom: 4px !important; }
 .stMarkdown h2 { font-size: 1.1rem !important; font-weight: 600 !important; margin-top: 8px !important; margin-bottom: 4px !important; }
 .stMarkdown h3 { font-size: 1.0rem !important; font-weight: 600 !important; margin-top: 6px !important; margin-bottom: 3px !important; }
 .stMarkdown h4 { font-size: 0.95rem !important; font-weight: 600 !important; }
 
-/* 3) 상단 헤더, 햄버거 메뉴, Deploy 버튼 완전 제거 */
+/* 3) 상단 불필요한 버튼만 제거 (사이드바 여는 버튼은 유지) */
 #MainMenu { visibility: hidden !important; display: none !important; }
-header { visibility: hidden !important; display: none !important; height: 0px !important; }
-header[data-testid="stHeader"] { visibility: hidden !important; display: none !important; height: 0px !important; }
 .stDeployButton { display: none !important; visibility: hidden !important; }
 .stAppDeployButton { display: none !important; visibility: hidden !important; }
 div[data-testid="stDecoration"] { display: none !important; }
 div[data-testid="stToolbar"] { visibility: hidden !important; display: none !important; }
 div[data-testid="stStatusWidget"] { visibility: hidden !important; display: none !important; }
 
-/* 4) Streamlit Cloud 배포 하단 푸터, 워터마크, 뷰어 배지 완전 제거 */
+/* 4) 'Built with Streamlit' 및 하단 모든 푸터/워터마크 완전 제거 */
 footer { visibility: hidden !important; display: none !important; height: 0px !important; }
 footer * { visibility: hidden !important; display: none !important; }
 div[data-testid="stFooter"] { visibility: hidden !important; display: none !important; height: 0px !important; }
@@ -53,14 +52,9 @@ div[class*="ProfileBadge"] { display: none !important; visibility: hidden !impor
 .viewerBadge_container__1QSob { display: none !important; visibility: hidden !important; }
 a[href*="streamlit.io"] { display: none !important; visibility: hidden !important; }
 iframe[title*="streamlit"] { display: none !important; }
+div[data-testid="stBottomBlockContainer"] > div:has(a[href*="streamlit.io"]) { display: none !important; }
 
-/* 5) 상/하단 빈 여백 최적화 */
-.block-container {
-    padding-top: 1.5rem !important;
-    padding-bottom: 2rem !important;
-}
-
-/* 6) 대기 시간 동적 애니메이션 */
+/* 5) 대기 시간 동적 애니메이션 */
 @keyframes tutorPulse {
     0% { transform: scale(1); opacity: 0.8; }
     50% { transform: scale(1.18); opacity: 1; filter: drop-shadow(0 0 8px #4A90E2); }
