@@ -9,7 +9,8 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("👨‍🏫 BTMPHYSICS AI Tutor 학생 학습 관리 대시보드")
+# 기존의 큰 st.title(...) 대신 아래 코드로 교체
+st.markdown("<h2 style='font-size: 24px; font-weight: bold; margin-bottom: 2px;'>BTMPHYSICS 학생 학습 관리 대시보드</h2>", unsafe_allow_html=True)
 st.caption("구글 스프레드시트와 실시간 연동되어 학생들의 질문 기록 및 참여도 통계를 분석합니다.")
 
 # 2. 관리자 비밀번호 보호
