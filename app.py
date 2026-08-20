@@ -311,12 +311,23 @@ with st.expander("📊 나의 학습 성취도 및 리포트 관리 열기", exp
                 st.rerun()
         else:
             st.caption("질문을 입력하면 성취도와 점수가 집계됩니다.")
+            
+    # 네이버 카페 배너 링크 (상단 대시보드)
+    st.markdown("---")
+    st.markdown("""
+    <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 12px; text-align: center; margin-top: 5px;">
+        <span style="font-size: 0.85rem; color: #6c757d; font-weight: 500;">더 많은 물리 자료와 학습 커뮤니티</span><br>
+        <a href="https://cafe.naver.com/btmphysics" target="_blank" style="text-decoration: none; font-weight: 700; color: #03c75a; font-size: 0.95rem;">
+            ☕ BTMPHYSICS 공식 카페 바로가기
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("---")
 
 # 9. 좌측 사이드바: 나의 학습 관리 대시보드
 with st.sidebar:
-    st.header("📚 오늘의 학습 관리")
+    st.header("📚 나의 학습 관리")
     st.metric(label="총 학습 점수", value=f"{learning_score}점", delta=f"{grade_label}" if q_count > 0 else None)
     
     st.write(f"**참여도** (질문 {q_count}회)")
@@ -352,8 +363,18 @@ with st.sidebar:
             st.rerun()
     else:
         st.caption("질문을 남기면 참여도와 학습 점수가 실시간으로 반영됩니다.")
-        st.caption("앱을 끝내면 기록이 사라지므로 꼭 다운로드 합시다..")
-
+        
+    # 네이버 카페 배너 링크 (사이드바)
+    st.markdown("---")
+    st.markdown("""
+    <div style="background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 10px 12px; text-align: center; margin-top: 5px;">
+        <span style="font-size: 0.85rem; color: #6c757d; font-weight: 500;">더 많은 물리 자료와 질문/답변</span><br>
+        <a href="https://cafe.naver.com/btmphysics" target="_blank" style="text-decoration: none; font-weight: 700; color: #03c75a; font-size: 0.95rem;">
+            ☕ BTMPHYSICS 공식 카페 바로가기
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
+    
 # 10. 복합 콘텐츠 렌더링 함수
 def render_assistant_content(content):
     html_blocks = re.findall(r"```html(.*?)```", content, re.DOTALL)
