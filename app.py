@@ -114,23 +114,31 @@ client = genai.Client(api_key=api_key)
 
 GSHEET_URL = st.secrets.get("GSHEET_URL", "")
 
+import datetime
+import requests
+
 def log_to_google_sheet(student_id, question, answer, engagement, diligence, score):
     webhook_url = st.secrets.get("WEBHOOK_URL", "")
     if not webhook_url:
+        st.warning("WEBHOOK_URL이 설정되지 않아 구글 시트에 기록되지 않았습니다.")
         return
+        
     payload = {
         "일시": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "학번이름": student_id,
+        "학번이름": student_id if student_id else "익명학생",
         "질문내용": question,
-        "AI답변요약": answer[:150] + "..." if len(answer) > 150 else answer,
+        "AI답변요약": str(answer)[:150],
         "참여도": f"{int(engagement * 100)}%",
         "성실도": f"{int(diligence * 100)}%",
         "점수": score
     }
+    
     try:
-        requests.post(webhook_url, json=payload, timeout=5)
-    except Exception:
-        pass
+        res = requests.post(webhook_url, json=payload, timeout=5)
+        if res.status_code != 200:
+            st.warning(f"시트 전송 실패 (상태코드: {res.status_code})")
+    except Exception as err:
+        st.warning(f"시트 전송 중 오류 발생: {err}")
         
 # 4. 저장소 내 모든 강의록 탐색 및 로드
 def load_all_lecture_notes():
