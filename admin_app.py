@@ -12,7 +12,7 @@ st.title("👨‍🏫 BTMPHYSICS AI Tutor 학생 학습 관리 대시보드")
 st.caption("학생들의 실시간 질문 기록과 성실도/참여도 통계를 분석합니다.")
 
 # 관리자 비밀번호 보호
-ADMIN_PW = st.secrets.get("ADMIN_PASSWORD", "1234")
+ADMIN_PW = st.secrets.get("ADMIN_PASSWORD", "toyoung789*")
 pw_input = st.sidebar.text_input("관리자 비밀번호", type="password")
 
 if pw_input != ADMIN_PW:
