@@ -408,10 +408,10 @@ AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
 for message in st.session_state.messages:
-    avatar = AVATAR_USER if message["role"] == "user" else "👨‍🏫"
+    avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
     with st.chat_message(message["role"], avatar=avatar):
         if "image" in message and message["image"] is not None:
-            st.image(message["image"], caption="첨부된 문제 이미지", use_column_width=True)
+            st.image(message["image"], caption="첨부된 문제 이미지", use_container_width=True)
         if message["role"] == "assistant":
             render_assistant_content(message["content"])
             copy_button_widget(message["content"], button_label="📋 답변 전체 복사")
@@ -435,7 +435,7 @@ if prompt := st.chat_input("첨부한 문제에 대해 궁금한 점이나 물�
 
     with st.chat_message("user", avatar=AVATAR_USER):
         if uploaded_image is not None:
-            st.image(uploaded_image.getvalue(), caption="첨부된 문제 이미지", use_column_width=True)
+            st.image(uploaded_image.getvalue(), caption="첨부된 문제 이미지", use_container_width=True)
         st.markdown(prompt)
         copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
