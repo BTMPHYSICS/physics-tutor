@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-from streamlit_gsheets import GSheetsConnection
+import re
+import urllib.parse
 
 st.set_page_config(
     page_title="BTMPHYSICS 관리자 대시보드",
@@ -12,32 +13,52 @@ st.title("👨‍🏫 BTMPHYSICS AI Tutor 학생 학습 관리 대시보드")
 st.caption("학생들의 실시간 질문 기록과 성실도/참여도 통계를 분석합니다.")
 
 # 관리자 비밀번호 보호
-ADMIN_PW = st.secrets.get("ADMIN_PASSWORD", "toyoung789*")
+ADMIN_PW = st.secrets.get("ADMIN_PASSWORD", "1234")
 pw_input = st.sidebar.text_input("관리자 비밀번호", type="password")
 
 if pw_input != ADMIN_PW:
     st.info("좌측 사이드바에 관리자 비밀번호를 입력해 주세요.")
     st.stop()
 
-# 구글 시트 연결 및 데이터 로드
-GSHEET_URL = st.secrets.get("GSHEET_URL", "복사한_구글시트_공유링크")
+# 구글 시트 URL 가져오기
+GSHEET_URL = st.secrets.get("GSHEET_URL", "")
+
+if not GSHEET_URL:
+    st.error("Secrets에 GSHEET_URL이 설정되지 않았습니다.")
+    st.stop()
+
+# 구글 시트 ID 추출 함수
+def extract_sheet_id(url):
+    match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", url)
+    return match.group(1) if match else url
+
+# UTF-8 기반 안전한 구글 시트 데이터 로드 함수
+@st.cache_data(ttl=5)
+def load_data(url):
+    sheet_id = extract_sheet_id(url)
+    # 구글 시트 CSV 내보내기 전용 엔드포인트 URL
+    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+    
+    # utf-8 인코딩으로 데이터프레임 로드
+    df = pd.read_csv(csv_url, encoding="utf-8")
+    return df
 
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    df = conn.read(spreadsheet=GSHEET_URL, ttl=5)
+    df = load_data(GSHEET_URL)
 except Exception as e:
     st.error(f"데이터를 불러오는 중 오류가 발생했습니다: {e}")
+    st.info("구글 시트의 공유 설정이 '링크가 있는 모든 사용자 - 뷰어(또는 편집자)'로 되어 있는지 확인해 주세요.")
     st.stop()
 
 if df.empty or "학번이름" not in df.columns:
-    st.info("아직 기록된 학생 학습 데이터가 없습니다.")
+    st.info("아직 기록된 학생 학습 데이터가 없거나 첫 행 헤더명이 올바르지 않습니다.")
     st.stop()
 
 # 상단 핵심 메트릭
 col1, col2, col3, col4 = st.columns(4)
 total_logs = len(df)
 unique_students = df["학번이름"].nunique()
-avg_score = int(df["점수"].mean()) if "점수" in df.columns else 0
+avg_score = int(pd.to_numeric(df["점수"], errors="coerce").fillna(0).mean()) if "점수" in df.columns else 0
 
 with col1:
     st.metric("총 누적 질문 수", f"{total_logs}건")
@@ -47,11 +68,12 @@ with col3:
     st.metric("평균 학습 점수", f"{avg_score}점")
 with col4:
     if st.button("🔄 최신 데이터 새로고침"):
+        st.cache_data.clear()
         st.rerun()
 
 st.markdown("---")
 
-# 탭 구성: 1) 학생별 요약 2) 전체 질문 로그 3) 개별 학생 정밀 조회
+# 탭 구성
 tab1, tab2, tab3 = st.tabs(["👥 학생별 활동 요약", "📋 실시간 전체 로그", "🔍 개별 학생 상세 탐구"])
 
 with tab1:
@@ -68,7 +90,7 @@ with tab2:
     st.subheader("실시간 질문 및 답변 로그")
     st.dataframe(df.sort_values(by="일시", ascending=False), use_container_width=True)
     
-    # 엑셀/CSV 다운로드 버튼
+    # 엑셀/CSV 다운로드 버튼 (UTF-8 BOM 적용으로 한글 엑셀 깨짐 방지)
     csv_data = df.to_csv(index=False).encode('utf-8-sig')
     st.download_button(
         label="📥 전체 로그 CSV 다운로드",
@@ -79,14 +101,15 @@ with tab2:
 
 with tab3:
     st.subheader("특정 학생 대화 내역 정밀 분석")
-    student_list = sorted(df["학번이름"].unique())
+    student_list = sorted(df["학번이름"].dropna().unique())
     selected_student = st.selectbox("조회할 학생을 선택하세요", student_list)
     
     student_df = df[df["학번이름"] == selected_student].sort_values(by="일시")
     st.write(f"**{selected_student}** 학생의 누적 질문 수: {len(student_df)}회")
     
     for _, row in student_df.iterrows():
-        with st.expander(f"[{row['일시']}] 질문: {row['질문내용'][:30]}..."):
+        question_preview = str(row['질문내용'])[:30] if pd.notna(row['질문내용']) else "질문 없음"
+        with st.expander(f"[{row['일시']}] 질문: {question_preview}..."):
             st.write(f"**질문 원문:** {row['질문내용']}")
             st.write(f"**AI 피드백 요약:** {row['AI답변요약']}")
             st.caption(f"점수: {row.get('점수', '-')}점 | 참여도: {row.get('참여도', '-')} | 성실도: {row.get('성실도', '-')}")
