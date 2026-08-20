@@ -403,13 +403,15 @@ def render_assistant_content(content):
 
         components.html(responsive_wrapper, height=620, scrolling=True)
 
-# 11. 이전 대화 화면 렌더링
+# 11. 이전 대화 화면 렌더링 (이미지 표시 지원)
 AVATAR_USER = "🧑‍🎓"
 AVATAR_ASSISTANT = "👨‍🏫"
 
 for message in st.session_state.messages:
-    avatar = AVATAR_USER if message["role"] == "user" else AVATAR_ASSISTANT
+    avatar = AVATAR_USER if message["role"] == "user" else "👨‍🏫"
     with st.chat_message(message["role"], avatar=avatar):
+        if "image" in message and message["image"] is not None:
+            st.image(message["image"], caption="첨부된 문제 이미지", use_column_width=True)
         if message["role"] == "assistant":
             render_assistant_content(message["content"])
             copy_button_widget(message["content"], button_label="📋 답변 전체 복사")
@@ -417,21 +419,36 @@ for message in st.session_state.messages:
             st.markdown(message["content"])
             copy_button_widget(message["content"], button_label="📋 내 질문 복사")
 
-# 12. 라우팅 기반 초고속 실시간 스트리밍 질문 처리
-if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+# 12. 문제 이미지 첨부 UI 및 멀티모달 질문 처리
+uploaded_image = st.file_uploader(
+    "📷 문제 사진이나 도표/그래프 이미지를 첨부하세요 (선택 사항)", 
+    type=["png", "jpg", "jpeg", "webp"],
+    help="모의고사 문제, 회로도, 연습장 풀이 사진을 올리면 AI가 함께 분석합니다."
+)
+
+if prompt := st.chat_input("첨부한 문제에 대해 궁금한 점이나 물리 질문을 입력하세요..."):
+    # 사용자 메시지 저장 (이미지 포함 여부 기록)
+    user_msg_record = {"role": "user", "content": prompt}
+    if uploaded_image is not None:
+        user_msg_record["image"] = uploaded_image.getvalue()
+    st.session_state.messages.append(user_msg_record)
+
     with st.chat_message("user", avatar=AVATAR_USER):
+        if uploaded_image is not None:
+            st.image(uploaded_image.getvalue(), caption="첨부된 문제 이미지", use_column_width=True)
         st.markdown(prompt)
         copy_button_widget(prompt, button_label="📋 내 질문 복사")
 
+    # 최근 4개 대화 기록 구성
     recent_messages = st.session_state.messages[-4:]
     contents = []
     for msg in recent_messages:
         role = "user" if msg["role"] == "user" else "model"
-        contents.append({
-            "role": role,
-            "parts": [{"text": msg["content"]}]
-        })
+        parts = []
+        if "image" in msg and msg["image"] is not None:
+            parts.append(types.Part.from_bytes(data=msg["image"], mime_type="image/jpeg"))
+        parts.append(types.Part.from_text(text=msg["content"]))
+        contents.append({"role": role, "parts": parts})
 
     with st.chat_message("assistant", avatar=AVATAR_ASSISTANT):
         response_placeholder = st.empty()
@@ -439,21 +456,23 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
         <div class="thinking-box">
             <span class="tutor-active-icon">👨‍🏫</span>
             <span class="tutor-atom-icon">⚛️</span>
-            <span class="thinking-text">답변 준비중입니다....</span>
+            <span class="thinking-text">문제 이미지 분석 및 답변 준비중입니다....</span>
         </div>
         """, unsafe_allow_html=True)
         
-        # [핵심] 일상 대화 판별 로직
-        is_casual = False
-        casual_keywords = ["안녕", "고마워", "감사", "반가워", "수고", "잘가", "좋은", "그래", "맞아"]
-        if len(prompt) < 15 and any(keyword in prompt for keyword in casual_keywords):
-            is_casual = True
-
-        # 일상 대화면 가벼운 지침, 물리 질문이면 무거운 강의록 포함
-        if is_casual:
-            dynamic_instruction = "당신은 친절한 과학고 물리 교사입니다. 학생의 인사에 1~2문장으로 가볍고 다정하게 답변하세요. 물리 수식이나 개념 설명은 생략합니다."
-        else:
+        # 이미지 첨부 시에는 무조건 물리 전용 지침으로 처리
+        if uploaded_image is not None:
             dynamic_instruction = PHYSICS_INSTRUCTION
+        else:
+            is_casual = False
+            casual_keywords = ["안녕", "고마워", "감사", "반가워", "수고", "잘가", "좋은", "그래", "맞아"]
+            if len(prompt) < 15 and any(keyword in prompt for keyword in casual_keywords):
+                is_casual = True
+
+            if is_casual:
+                dynamic_instruction = "당신은 친절한 과학고 물리 교사입니다. 학생의 인사에 1~2문장으로 가볍고 다정하게 답변하세요. 물리 수식이나 개념 설명은 생략합니다."
+            else:
+                dynamic_instruction = PHYSICS_INSTRUCTION
 
         config = types.GenerateContentConfig(
             system_instruction=dynamic_instruction,
@@ -494,6 +513,6 @@ if prompt := st.chat_input("물리 개념이나 문제에 대해 질문하세요
                 continue
 
         if not success:
-            error_msg = "일시적으로 응답이 지연되고 있습니다. 잠시 후 다시 질문해 주세요."
+            error_msg = "이미지 분석 또는 응답 처리에 실패했습니다. 잠시 후 다시 질문해 주세요."
             response_placeholder.markdown(error_msg)
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
