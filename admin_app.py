@@ -2,12 +2,20 @@ import streamlit as st
 import pandas as pd
 import re
 
-# 1. 페이지 기본 설정
+# 1. 페이지 설정
 st.set_page_config(
-    page_title="BTMPHYSICS 관리자 대시보드",
-    page_icon="📊",
+    page_title="BTMPHYSICSAITUTOR",
+    page_icon="⚛️",
     layout="wide"
 )
+
+# 모바일 홈 화면 설치 시 기본 앱 이름 강제 지정
+st.markdown("""
+<head>
+    <meta name="apple-mobile-web-app-title" content="BTMPHYSICSAITUTOR">
+    <meta name="application-name" content="BTMPHYSICSAITUTOR">
+</head>
+""", unsafe_allow_html=True)
 
 # 기존의 큰 st.title(...) 대신 아래 코드로 교체
 st.markdown("<h2 style='font-size: 24px; font-weight: bold; margin-bottom: 2px;'>BTMPHYSICS 학생 학습 관리 대시보드</h2>", unsafe_allow_html=True)
