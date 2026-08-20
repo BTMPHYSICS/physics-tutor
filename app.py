@@ -12,13 +12,20 @@ from streamlit_gsheets import GSheetsConnection
 from google import genai
 from google.genai import types
 
-# 1. 페이지 기본 설정
+# 1. 페이지 설정
 st.set_page_config(
-    page_title="BTMPHYSICS AI Tutor",
+    page_title="BTMPHYSICSAITUTOR",
     page_icon="⚛️",
-    layout="centered",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
+
+# 모바일 홈 화면 설치 시 기본 앱 이름 강제 지정
+st.markdown("""
+<head>
+    <meta name="apple-mobile-web-app-title" content="BTMPHYSICSAITUTOR">
+    <meta name="application-name" content="BTMPHYSICSAITUTOR">
+</head>
+""", unsafe_allow_html=True)
 
 # 2. UI 스타일 최적화 CSS
 st.markdown("""
