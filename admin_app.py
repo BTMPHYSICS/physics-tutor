@@ -20,29 +20,28 @@ if pw_input != ADMIN_PW:
     st.info("좌측 사이드바에 관리자 비밀번호를 입력해 주세요.")
     st.stop()
 
-# 구글 시트 URL 가져오기
-GSHEET_URL = st.secrets.get("GSHEET_URL", "")
-
-if not GSHEET_URL:
-    st.error("Secrets에 GSHEET_URL이 설정되지 않았습니다.")
-    st.stop()
-
-# 구글 시트 ID 추출 함수
+# 구글 시트 ID 및 GID 안전 추출 함수
 def extract_sheet_id(url):
     match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", url)
-    return match.group(1) if match else url
+    if match:
+        return match.group(1)
+    # URL이 아니라 ID만 적혀있는 경우 대응
+    return url.strip()
 
 # UTF-8 기반 안전한 구글 시트 데이터 로드 함수
 @st.cache_data(ttl=5)
 def load_data(url):
     sheet_id = extract_sheet_id(url)
-    # 구글 시트 CSV 내보내기 전용 엔드포인트 URL
-    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     
-    # utf-8 인코딩으로 데이터프레임 로드
+    # gid 번호 추출 (기본 첫 번째 시트는 0)
+    gid_match = re.search(r"[#&]gid=([0-9]+)", url)
+    gid = gid_match.group(1) if gid_match else "0"
+    
+    # 구글 시트 CSV 내보내기 정규 URL 포맷
+    csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&gid={gid}"
+    
     df = pd.read_csv(csv_url, encoding="utf-8")
     return df
-
 try:
     df = load_data(GSHEET_URL)
 except Exception as e:
@@ -50,8 +49,18 @@ except Exception as e:
     st.info("구글 시트의 공유 설정이 '링크가 있는 모든 사용자 - 뷰어(또는 편집자)'로 되어 있는지 확인해 주세요.")
     st.stop()
 
-if df.empty or "학번이름" not in df.columns:
-    st.info("아직 기록된 학생 학습 데이터가 없거나 첫 행 헤더명이 올바르지 않습니다.")
+# 컬럼명 공백 자동 제거 (헤더 띄어쓰기 오타 방지)
+df.columns = [str(col).strip() for col in df.columns]
+
+# 필수 헤더 누락 여부 확인
+if "학번이름" not in df.columns:
+    st.error("구글 스프레드시트 1행에 '학번이름' 헤더가 없습니다. 시트 1행을 확인해 주세요.")
+    st.write("현재 읽어온 헤더 목록:", list(df.columns))
+    st.stop()
+
+# 데이터가 아직 1건도 없을 때의 안내
+if len(df) == 0:
+    st.info("💡 스프레드시트 연결이 정상 완료되었습니다. 학생이 첫 질문을 남기면 실시간으로 통계가 집계됩니다.")
     st.stop()
 
 # 상단 핵심 메트릭
