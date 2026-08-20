@@ -115,27 +115,23 @@ client = genai.Client(api_key=api_key)
 GSHEET_URL = st.secrets.get("GSHEET_URL", "")
 
 def log_to_google_sheet(student_id, question, answer, engagement, diligence, score):
-    if not GSHEET_URL:
+    webhook_url = st.secrets.get("WEBHOOK_URL", "")
+    if not webhook_url:
         return
+    payload = {
+        "일시": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "학번이름": student_id,
+        "질문내용": question,
+        "AI답변요약": answer[:150] + "..." if len(answer) > 150 else answer,
+        "참여도": f"{int(engagement * 100)}%",
+        "성실도": f"{int(diligence * 100)}%",
+        "점수": score
+    }
     try:
-        conn = st.connection("gsheets", type=GSheetsConnection)
-        existing_data = conn.read(spreadsheet=GSHEET_URL, ttl=0)
-        
-        new_entry = pd.DataFrame([{
-            "일시": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "학번이름": student_id,
-            "질문내용": question,
-            "AI답변요약": answer[:150] + "..." if len(answer) > 150 else answer,
-            "참여도": f"{int(engagement * 100)}%",
-            "성실도": f"{int(diligence * 100)}%",
-            "점수": score
-        }])
-        
-        updated_df = pd.concat([existing_data, new_entry], ignore_index=True)
-        conn.update(spreadsheet=GSHEET_URL, data=updated_df)
+        requests.post(webhook_url, json=payload, timeout=5)
     except Exception:
         pass
-
+        
 # 4. 저장소 내 모든 강의록 탐색 및 로드
 def load_all_lecture_notes():
     combined_notes = ""
